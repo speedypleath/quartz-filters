@@ -80,7 +80,8 @@ As you type, a list suggests what can go at the cursor, taken from the published
 
 Use ↑ and ↓ to move, Enter or Tab to insert, and Esc to close the list. ↓ or Ctrl+Space opens it
 again.
-Values are quoted for you when they need it.
+Values are quoted for you when they need it. Once the word at the cursor is a complete field or
+value, the list closes, so Tab moves on.
 
 ### How values match
 

@@ -235,6 +235,10 @@ export function complete(
     ];
   }
 
+  // The word under the cursor is already a suggestion, so it is finished: offering the others would
+  // let Tab replace it, so there is nothing to suggest.
+  const current = query.slice(from, to);
+  if (items.some((item) => item.insert === current)) return null;
   return items.length > 0 ? { from, to, items: items.slice(0, limit) } : null;
 }
 

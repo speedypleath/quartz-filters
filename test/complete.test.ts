@@ -101,7 +101,15 @@ describe("complete", () => {
   });
 
   it("replaces the whole word under the cursor", () => {
-    expect(at("topics is Pro|gramming and")).toMatchObject({ from: 10, to: 21 });
+    expect(at("topics is Pro|gram and")).toMatchObject({ from: 10, to: 17 });
+  });
+
+  it("offers nothing when the word under the cursor is already a suggestion", () => {
+    expect(at("topics is Programming|")).toBeNull();
+    expect(at("topics is Pro|gramming")).toBeNull();
+    expect(at('topics is "Embedded programming|"')).toBeNull();
+    expect(at("topics|")).toBeNull();
+    expect(labels("topics is programming|")).toEqual(["Programming", "Embedded programming"]);
   });
 
   it("offers nothing where an operator or connective is expected", () => {
@@ -147,6 +155,6 @@ describe("applySuggestion", () => {
 
   it("replaces an open quote and the word after the cursor", () => {
     expect(apply('topics is "Emb|')).toBe('topics is "Embedded programming" |');
-    expect(apply("topics is Pro|gramming and x")).toBe("topics is Programming |and x");
+    expect(apply("topics is Pro|gram and x")).toBe("topics is Programming |and x");
   });
 });

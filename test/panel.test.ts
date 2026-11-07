@@ -395,6 +395,13 @@ describe("mountNoteFilter", () => {
       expect(input.value).toBe("topic is Books ");
     });
 
+    it("stays closed at the end of a finished clause, so Tab leaves the box", async () => {
+      const { input, list } = await ready();
+      typeAtEnd(input, "topic is Books");
+      expect(list.hidden).toBe(true);
+      expect(key(input, "Tab").defaultPrevented).toBe(false);
+    });
+
     it("stays closed when nothing matches or the field is unknown", async () => {
       const { input, list } = await ready();
       typeAtEnd(input, "zzz");

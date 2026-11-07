@@ -1,5 +1,12 @@
 import type { NoteFilterStrings } from "../../../i18n";
 import type { IndexedNote } from "../../../index-format";
+import {
+  applySuggestion,
+  buildCatalog,
+  complete,
+  type Catalog,
+  type Completion,
+} from "../../../query/complete";
 import { matches } from "../../../query/evaluate";
 import { connectiveAfter, formatClause, removeClause } from "../../../query/format";
 import { highlight } from "../../../query/highlight";
@@ -39,6 +46,7 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
     panels: Array.from(root.querySelectorAll<HTMLElement>('[role="tabpanel"]')),
     input: must<HTMLTextAreaElement>(".qf-input"),
     highlight: must<HTMLElement>(".qf-highlight"),
+    suggestions: must<HTMLUListElement>(".qf-suggestions"),
     caseToggle: must<HTMLButtonElement>(".qf-case"),
     error: must<HTMLElement>(".qf-error"),
     clauses: must<HTMLElement>(".qf-clauses"),
@@ -57,6 +65,11 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
 
   let mounted = true;
   let notes: IndexedNote[] | null = null;
+  let catalog: Catalog | null = null;
+  let completion: Completion | null = null;
+  let activeOption = 0;
+  /** Set by Escape; the list stays closed until the reader types again. */
+  let dismissed = false;
   let loadState: "idle" | "loading" | "ready" | "failed" = "idle";
   let parsed: ParseResult = parse("");
   /** The last query that parsed. `null` means no filter. */
@@ -87,8 +100,10 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
       (result) => {
         if (!mounted) return;
         notes = result;
+        catalog = buildCatalog(result);
         loadState = "ready";
         applyFilter();
+        updateSuggestions();
       },
       () => {
         if (!mounted) return;
@@ -129,6 +144,71 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
     el.highlight.append("\n");
     el.input.style.height = "auto";
     if (el.input.scrollHeight > 0) el.input.style.height = `${el.input.scrollHeight}px`;
+  }
+
+  function updateSuggestions() {
+    const cursor = el.input.selectionStart ?? el.input.value.length;
+    const open = catalog !== null && !dismissed && doc.activeElement === el.input;
+    completion = open && catalog ? complete(el.input.value, cursor, catalog) : null;
+    activeOption = 0;
+    renderSuggestions();
+  }
+
+  function renderSuggestions() {
+    const items = completion?.items ?? [];
+    el.suggestions.hidden = items.length === 0;
+    el.suggestions.replaceChildren(
+      ...items.map((item, index) => {
+        const option = doc.createElement("li");
+        option.className = `qf-suggestion qf-suggestion-${item.kind}`;
+        option.id = `${el.suggestions.id}-${index}`;
+        option.dataset.index = String(index);
+        option.setAttribute("role", "option");
+        option.setAttribute("aria-selected", String(index === activeOption));
+        const label = doc.createElement("span");
+        label.className = "qf-suggestion-label";
+        label.textContent = item.label;
+        option.append(label);
+        const detail =
+          item.kind === "field"
+            ? strings.suggestionField
+            : item.field
+              ? fmt(strings.suggestionIn, { field: item.field })
+              : "";
+        if (detail) {
+          const hint = doc.createElement("span");
+          hint.className = "qf-suggestion-detail";
+          hint.textContent = detail;
+          option.append(hint);
+        }
+        return option;
+      }),
+    );
+    const active = el.suggestions.children[activeOption];
+    if (active) {
+      el.input.setAttribute("aria-activedescendant", active.id);
+      active.scrollIntoView?.({ block: "nearest" });
+    } else {
+      el.input.removeAttribute("aria-activedescendant");
+    }
+  }
+
+  function acceptSuggestion(index: number) {
+    const item = completion?.items[index];
+    if (!completion || !item) return;
+    const next = applySuggestion(el.input.value, completion, item);
+    el.input.value = next.query;
+    el.input.setSelectionRange(next.cursor, next.cursor);
+    onTyped();
+  }
+
+  /** Runs after every edit: the highlight follows at once, the filter once typing pauses. */
+  function onTyped() {
+    dismissed = false;
+    renderHighlight();
+    clearTimeout(timer);
+    timer = setTimeout(render, deps.debounceMs ?? 150);
+    updateSuggestions();
   }
 
   function renderClauses() {
@@ -228,6 +308,7 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
   function setQuery(value: string) {
     el.input.value = value;
     render();
+    updateSuggestions();
   }
 
   function selectTab(name: string, focus = false) {
@@ -271,15 +352,59 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
   });
 
   // Query input
-  on(el.input, "input", () => {
-    renderHighlight();
-    clearTimeout(timer);
-    timer = setTimeout(render, deps.debounceMs ?? 150);
-  });
+  on(el.input, "input", onTyped);
   on(el.input, "keydown", (event) => {
+    const count = completion?.items.length ?? 0;
+    // Ctrl+Space switches input sources on macOS, so the down arrow reopens the list too.
+    if ((event.key === " " && event.ctrlKey) || (event.key === "ArrowDown" && count === 0)) {
+      dismissed = false;
+      updateSuggestions();
+      if (completion || event.key === " ") event.preventDefault();
+      return;
+    }
+    if (count > 0) {
+      const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
+      if (step !== undefined) {
+        event.preventDefault();
+        activeOption = (activeOption + step + count) % count;
+        renderSuggestions();
+        return;
+      }
+      if (event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) {
+        event.preventDefault();
+        acceptSuggestion(activeOption);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        dismissed = true;
+        updateSuggestions();
+        return;
+      }
+    }
     if (event.key === "Enter") event.preventDefault();
   });
-  on(el.input, "focus", ensureLoaded);
+  // The cursor can move without an edit; the suggestions follow the word it lands in.
+  on(el.input, "click", updateSuggestions);
+  on(el.input, "keyup", (event) => {
+    if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) updateSuggestions();
+  });
+  on(el.input, "focus", () => {
+    ensureLoaded();
+    updateSuggestions();
+  });
+  on(el.input, "blur", () => {
+    completion = null;
+    renderSuggestions();
+  });
+  // Keeps focus in the input, so choosing an option doesn't close the list first.
+  on(el.suggestions, "mousedown", (event) => event.preventDefault());
+  on(el.suggestions, "click", (event) => {
+    const option = (event.target as Element).closest<HTMLElement>(".qf-suggestion");
+    if (!option) return;
+    acceptSuggestion(Number(option.dataset.index));
+    el.input.focus();
+  });
   on(el.caseToggle, "click", () => {
     setCase(!caseSensitive());
     render();

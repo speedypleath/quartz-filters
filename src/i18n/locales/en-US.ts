@@ -24,6 +24,9 @@ export default {
       filtered: "Filtered",
       savedEmpty: "Save a filter to run it again later.",
       savingOff: "Saving is off in this browser.",
+      suggestions: "Suggestions",
+      suggestionField: "field",
+      suggestionIn: "in {field}",
     },
   },
 };

@@ -75,6 +75,8 @@ export default ((opts?: NoteFilterOptions) => {
               autocomplete="off"
               aria-label={t.label}
               placeholder={placeholder}
+              aria-autocomplete="list"
+              aria-controls={`${id}-suggestions`}
             ></textarea>
             <button
               type="button"
@@ -85,6 +87,13 @@ export default ((opts?: NoteFilterOptions) => {
             >
               Aa
             </button>
+            <ul
+              class="qf-suggestions"
+              role="listbox"
+              id={`${id}-suggestions`}
+              aria-label={t.suggestions}
+              hidden
+            ></ul>
           </div>
           <p class="qf-error" role="alert" hidden></p>
           <ol class="qf-clauses"></ol>

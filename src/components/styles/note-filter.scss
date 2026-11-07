@@ -138,6 +138,61 @@
     }
   }
 
+  // Suggestions use the same colours as the highlight, so a field looks like a field in both.
+  .qf-suggestions {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: 0;
+    right: 0;
+    z-index: 10;
+    max-height: 15rem;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.25rem 0;
+    list-style: none;
+    background: var(--light);
+    border: 1px solid var(--lightgray);
+    border-radius: 5px;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--dark) 12%, transparent);
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .qf-suggestion {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0.25rem 0.65rem;
+    cursor: pointer;
+
+    &:hover,
+    &[aria-selected="true"] {
+      background: var(--highlight);
+    }
+  }
+
+  .qf-suggestion-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--tertiary) 70%, var(--dark));
+  }
+
+  .qf-suggestion-field .qf-suggestion-label {
+    color: var(--secondary);
+  }
+
+  .qf-suggestion-detail {
+    flex-shrink: 0;
+    color: var(--gray);
+  }
+
   .qf-error {
     margin: 0.4rem 0 0;
     font-size: 0.8rem;

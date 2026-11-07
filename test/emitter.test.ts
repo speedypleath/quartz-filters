@@ -30,6 +30,21 @@ describe("normalizeValue", () => {
   ])("%j → %j", (input, expected) => {
     expect(normalizeValue(input)).toEqual(expected);
   });
+
+  // Obsidian stores links in properties as "[[Note]]"; readers filter by the text they see.
+  it.each([
+    ["[[Programming]]", "Programming"],
+    [
+      ["[[Electronics]]", "[[Embedded programming]]"],
+      ["Electronics", "Embedded programming"],
+    ],
+    ["[[Electronics|Hardware]]", "Hardware"],
+    ["[[Electronics#Motors]]", "Electronics"],
+    ["[[areas/Electronics]]", "areas/Electronics"],
+    ["see [[Electronics]]", "see [[Electronics]]"],
+  ])("unwraps links: %j → %j", (input, expected) => {
+    expect(normalizeValue(input)).toEqual(expected);
+  });
 });
 
 describe("indexNote", () => {

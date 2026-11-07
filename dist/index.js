@@ -11,8 +11,15 @@ var INDEX_FILE = "static/quartz-filters/index.json";
 // src/emitter.ts
 var defaultOptions = { excludeFields: [] };
 var BUILT_IN = /* @__PURE__ */ new Set(["title", "path"]);
+var WIKILINK = /^\[\[([^[\]|#]*)(?:#[^[\]|]*)?(?:\|([^[\]]*))?\]\]$/;
+function unwrapLink(value) {
+  const link = WIKILINK.exec(value.trim());
+  if (!link) return value;
+  return (link[2] || link[1] || value).trim();
+}
 function normalizeScalar(value) {
-  if (typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "string") return unwrapLink(value);
+  if (typeof value === "boolean") return value;
   if (typeof value === "number") return Number.isFinite(value) ? value : void 0;
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? void 0 : value.toISOString();
   return void 0;

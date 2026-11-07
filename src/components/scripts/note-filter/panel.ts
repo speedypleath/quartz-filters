@@ -142,6 +142,11 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
     );
     // Keeps a trailing newline from collapsing, so the overlay matches the textarea's height.
     el.highlight.append("\n");
+    fitInput();
+  }
+
+  /** Grows the input to its text. A hidden input measures 0, so this runs again when it is shown. */
+  function fitInput() {
     el.input.style.height = "auto";
     if (el.input.scrollHeight > 0) el.input.style.height = `${el.input.scrollHeight}px`;
   }
@@ -319,6 +324,7 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
       if (selected && focus) tab.focus();
     }
     for (const panel of el.panels) panel.hidden = panel.dataset.panel !== name;
+    if (name === "filter") fitInput();
   }
 
   function resetReplace() {

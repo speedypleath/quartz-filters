@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- 5f04915: Suggest field names and values while typing a filter. Arrow keys move through the list, Enter or Tab inserts, and Esc closes it.
+
 ## 0.2.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@speedypleath/quartz-filters",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Filter the Quartz Explorer by frontmatter with plain-words queries, and save filters as bookmarks.",
   "type": "module",
   "license": "MIT",

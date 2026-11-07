@@ -288,6 +288,121 @@ describe("mountNoteFilter", () => {
     expect(document.querySelectorAll(".qf-hidden")).toHaveLength(0);
   });
 
+  describe("suggestions", () => {
+    const key = (input: HTMLTextAreaElement, k: string, init: KeyboardEventInit = {}) => {
+      const event = new KeyboardEvent("keydown", {
+        key: k,
+        bubbles: true,
+        cancelable: true,
+        ...init,
+      });
+      input.dispatchEvent(event);
+      return event;
+    };
+    const typeAtEnd = (input: HTMLTextAreaElement, value: string) => {
+      type(input, value);
+      input.setSelectionRange(value.length, value.length);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    async function ready() {
+      const ctx = setup();
+      ctx.input.focus();
+      await settle();
+      return {
+        ...ctx,
+        list: ctx.$(".qf-suggestions"),
+        options: () => Array.from(ctx.root.querySelectorAll<HTMLElement>(".qf-suggestion")),
+      };
+    }
+
+    it("lists fields and values for the word being typed", async () => {
+      const { input, list, options } = await ready();
+      typeAtEnd(input, "to");
+      expect(list.hidden).toBe(false);
+      expect(input.getAttribute("aria-expanded")).toBe("true");
+      expect(options().map((o) => o.textContent)).toEqual(["topicfield"]);
+
+      typeAtEnd(input, "topic is ");
+      expect(options().map((o) => o.querySelector(".qf-suggestion-label")?.textContent)).toEqual([
+        "Electronics",
+        "Books",
+      ]);
+    });
+
+    it("labels a value at the start of a clause with its field", async () => {
+      const { input, options } = await ready();
+      typeAtEnd(input, "seed");
+      expect(options()[0]?.textContent).toBe("seedlingin tags");
+    });
+
+    it("moves with the arrow keys and inserts with Enter", async () => {
+      const { input, list, options } = await ready();
+      typeAtEnd(input, "topic is ");
+      expect(options()[0]?.getAttribute("aria-selected")).toBe("true");
+      expect(key(input, "ArrowDown").defaultPrevented).toBe(true);
+      expect(options()[1]?.getAttribute("aria-selected")).toBe("true");
+      expect(input.getAttribute("aria-activedescendant")).toBe(options()[1]?.id);
+
+      key(input, "Enter");
+      expect(input.value).toBe("topic is Books ");
+      expect(input.selectionStart).toBe(15);
+      expect(list.hidden).toBe(true);
+      await settle();
+      expect(visibleNotes()).toEqual(["Dune"]);
+    });
+
+    it("inserts with Tab and offers the next fields after in", async () => {
+      const { input, options } = await ready();
+      typeAtEnd(input, "seedling in ");
+      expect(options().map((o) => o.textContent)).toEqual([
+        "tagsfield",
+        "topicfield",
+        "titlefield",
+        "pathfield",
+      ]);
+      key(input, "Tab");
+      expect(input.value).toBe("seedling in tags ");
+    });
+
+    it("closes with Escape until the next keystroke, and reopens with Ctrl+Space", async () => {
+      const { input, list } = await ready();
+      typeAtEnd(input, "to");
+      key(input, "Escape");
+      expect(list.hidden).toBe(true);
+      expect(input.getAttribute("aria-expanded")).toBe("false");
+      expect(key(input, "Enter").defaultPrevented).toBe(true);
+      expect(input.value).toBe("to");
+
+      key(input, " ", { ctrlKey: true });
+      expect(list.hidden).toBe(false);
+      typeAtEnd(input, "top");
+      expect(list.hidden).toBe(false);
+    });
+
+    it("inserts the option that is clicked", async () => {
+      const { input, options } = await ready();
+      typeAtEnd(input, "topic is ");
+      options()[1]!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+      options()[1]!.click();
+      expect(input.value).toBe("topic is Books ");
+    });
+
+    it("stays closed when nothing matches or the field is unknown", async () => {
+      const { input, list } = await ready();
+      typeAtEnd(input, "zzz");
+      expect(list.hidden).toBe(true);
+      typeAtEnd(input, "topic ");
+      expect(list.hidden).toBe(true);
+    });
+
+    it("closes when the input loses focus", async () => {
+      const { input, list } = await ready();
+      typeAtEnd(input, "to");
+      input.dispatchEvent(new Event("blur"));
+      expect(list.hidden).toBe(true);
+    });
+  });
+
   it("moves between tabs with the arrow keys", () => {
     const { $ } = setup();
     $('[data-tab="filter"]').dispatchEvent(

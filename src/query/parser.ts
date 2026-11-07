@@ -1,7 +1,7 @@
 import { tokenize } from "./lexer";
 import type { Clause, ClauseOp, Expr, Literal, ParseError, ParseResult, Token } from "./types";
 
-const FIELD_NAME = /^[\p{L}_][\p{L}\p{N}_.-]*$/u;
+export const FIELD_NAME = /^[\p{L}_][\p{L}\p{N}_.-]*$/u;
 const LITERAL_TYPES = new Set<Token["type"]>(["string", "number", "date", "boolean", "word"]);
 
 class ParseFailure extends Error {

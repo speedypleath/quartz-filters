@@ -1,6 +1,7 @@
 import { createRequire } from 'module';
 import path2 from 'path';
 import fs from 'fs/promises';
+import { jsx } from 'preact/jsx-runtime';
 
 createRequire(import.meta.url);
 
@@ -33,6 +34,7 @@ function asciiControl(code3) {
     code3 !== null && (code3 < 32 || code3 === 127)
   );
 }
+var asciiPunctuation = regexCheck(/[!-/:-@[-`{-~]/);
 function markdownLineEnding(code3) {
   return code3 !== null && code3 < -2;
 }
@@ -45,8 +47,8 @@ function markdownSpace(code3) {
 var unicodePunctuation = regexCheck(/\p{P}|\p{S}/u);
 var unicodeWhitespace = regexCheck(/\s/);
 function regexCheck(regex2) {
-  return check;
-  function check(code3) {
+  return check2;
+  function check2(code3) {
     return code3 !== null && code3 > -1 && regex2.test(String.fromCharCode(code3));
   }
 }
@@ -113,10 +115,10 @@ function anyFactory(tests) {
     return false;
   }
 }
-function propertiesFactory(check) {
+function propertiesFactory(check2) {
   const checkAsRecord = (
     /** @type {Record<string, unknown>} */
-    check
+    check2
   );
   return castFactory(all3);
   function all3(node2) {
@@ -126,21 +128,21 @@ function propertiesFactory(check) {
       node2
     );
     let key;
-    for (key in check) {
+    for (key in check2) {
       if (nodeAsRecord[key] !== checkAsRecord[key]) return false;
     }
     return true;
   }
 }
-function typeFactory(check) {
+function typeFactory(check2) {
   return castFactory(type);
   function type(node2) {
-    return node2 && node2.type === check;
+    return node2 && node2.type === check2;
   }
 }
 function castFactory(testFunction) {
-  return check;
-  function check(value, index, parent) {
+  return check2;
+  function check2(value, index, parent) {
     return Boolean(
       looksLikeANode(value) && testFunction.call(
         this,
@@ -159,8 +161,8 @@ function looksLikeANode(value) {
 }
 
 // node_modules/unist-util-visit-parents/lib/color.node.js
-function color(d2) {
-  return "\x1B[33m" + d2 + "\x1B[39m";
+function color(d) {
+  return "\x1B[33m" + d + "\x1B[39m";
 }
 
 // node_modules/unist-util-visit-parents/lib/index.js
@@ -168,16 +170,49 @@ var empty = [];
 var CONTINUE = true;
 var EXIT = false;
 var SKIP = "skip";
-function visitParents(tree, test, visitor, reverse) {
-  let check;
-  if (typeof test === "function" && typeof visitor !== "function") {
-    reverse = visitor;
-    visitor = test;
-  } else {
-    check = test;
+function visitParents(tree, testOrEnterOrVisitors, enterOrVisitorsOrReverse, reverse) {
+  if (!tree || typeof tree !== "object") {
+    throw new Error("Unexpected value `" + tree + "` for `tree`, expected node");
   }
-  const is2 = convert(check);
-  const step = reverse ? -1 : 1;
+  let preorder = true;
+  let check2;
+  let visitors;
+  let enter;
+  let exit2;
+  if (typeof enterOrVisitorsOrReverse === "function" || enterOrVisitorsOrReverse && typeof enterOrVisitorsOrReverse === "object") {
+    check2 = /** @type {Test} */
+    testOrEnterOrVisitors;
+    visitors = enterOrVisitorsOrReverse;
+    if (reverse) preorder = false;
+  } else {
+    visitors = /** @type {Visitors | Visitor} */
+    testOrEnterOrVisitors;
+    if (enterOrVisitorsOrReverse) preorder = false;
+  }
+  if (typeof visitors === "function") {
+    enter = visitors;
+  } else if (visitors && typeof visitors === "object") {
+    if (visitors.enter === null || visitors.enter === void 0) ; else if (typeof visitors.enter === "function") {
+      enter = visitors.enter;
+    } else {
+      throw new Error(
+        "Unexpected value `" + visitors.enter + "` for `visitors.enter`, expected optional visitor"
+      );
+    }
+    if (typeof visitors.exit === "function") {
+      exit2 = visitors.exit;
+    } else {
+      throw new Error(
+        "Unexpected value `" + visitors.exit + "` for `visitors.exit`, expected visitor (pass a visitor directly if you only want an enter visitor)"
+      );
+    }
+  } else {
+    throw new Error(
+      "Unexpected value `" + visitors + "` for `enter` or `visitors`, expected visitor or object with visitors"
+    );
+  }
+  const is2 = convert(check2);
+  const step = preorder ? 1 : -1;
   factory(tree, void 0, [])();
   function factory(node2, index, parents) {
     const value = (
@@ -198,12 +233,10 @@ function visitParents(tree, test, visitor, reverse) {
     }
     return visit2;
     function visit2() {
+      const matches = !check2 || is2(node2, index, parents[parents.length - 1] || void 0);
       let result = empty;
-      let subresult;
-      let offset;
-      let grandparents;
-      if (!test || is2(node2, index, parents[parents.length - 1] || void 0)) {
-        result = toResult(visitor(node2, parents));
+      if (enter && matches) {
+        result = toResult(enter(node2, parents, index));
         if (result[0] === EXIT) {
           return result;
         }
@@ -214,16 +247,27 @@ function visitParents(tree, test, visitor, reverse) {
           node2
         );
         if (nodeAsParent.children && result[0] !== SKIP) {
-          offset = (reverse ? nodeAsParent.children.length : -1) + step;
-          grandparents = parents.concat(nodeAsParent);
+          let offset = (preorder ? -1 : nodeAsParent.children.length) + step;
+          const grandparents = [...parents, nodeAsParent];
           while (offset > -1 && offset < nodeAsParent.children.length) {
             const child = nodeAsParent.children[offset];
-            subresult = factory(child, offset, grandparents)();
+            const subresult = factory(child, offset, grandparents)();
             if (subresult[0] === EXIT) {
               return subresult;
             }
             offset = typeof subresult[1] === "number" ? subresult[1] : offset + step;
           }
+        }
+      }
+      if (exit2 && matches) {
+        const exitResult = toResult(exit2(node2, parents, index));
+        if (exitResult[0] === SKIP) {
+          throw new Error(
+            "Unexpected value `" + exitResult[0] + "` from `exit`, expected `CONTINUE`, `EXIT`, index, or nothing"
+          );
+        }
+        if (exitResult[0] === EXIT || typeof exitResult[1] === "number") {
+          return exitResult;
         }
       }
       return result;
@@ -247,34 +291,19 @@ function findAndReplace(tree, list2, options) {
   const pairs = toPairs(list2);
   let pairIndex = -1;
   while (++pairIndex < pairs.length) {
-    visitParents(tree, "text", visitor);
+    visitParents(tree, visitor);
   }
-  function visitor(node2, parents) {
-    let index = -1;
-    let grandparent;
-    while (++index < parents.length) {
-      const parent = parents[index];
-      const siblings = grandparent ? grandparent.children : void 0;
-      if (ignored(
-        parent,
-        siblings ? siblings.indexOf(parent) : void 0,
-        grandparent
-      )) {
-        return;
-      }
-      grandparent = parent;
+  function visitor(node2, parents, index) {
+    if (node2.type === "text" && typeof index === "number") {
+      return handler(node2, parents, index);
     }
-    if (grandparent) {
-      return handler(node2, parents);
-    }
+    if (ignored(node2, index, parents[parents.length - 1])) return SKIP;
   }
-  function handler(node2, parents) {
+  function handler(node2, parents, index) {
     const parent = parents[parents.length - 1];
     const find = pairs[pairIndex][0];
     const replace2 = pairs[pairIndex][1];
     let start = 0;
-    const siblings = parent.children;
-    const index = siblings.indexOf(node2);
     let change = false;
     let nodes = [];
     find.lastIndex = 0;
@@ -294,15 +323,12 @@ function findAndReplace(tree, list2, options) {
         find.lastIndex = position + 1;
       } else {
         if (start !== position) {
-          nodes.push({
-            type: "text",
-            value: node2.value.slice(start, position)
-          });
+          add({ type: "text", value: node2.value.slice(start, position) });
         }
         if (Array.isArray(value)) {
-          nodes.push(...value);
+          for (const child of value) add(child);
         } else if (value) {
-          nodes.push(value);
+          add(value);
         }
         start = position + match[0].length;
         change = true;
@@ -314,21 +340,35 @@ function findAndReplace(tree, list2, options) {
     }
     if (change) {
       if (start < node2.value.length) {
-        nodes.push({ type: "text", value: node2.value.slice(start) });
+        add({ type: "text", value: node2.value.slice(start) });
       }
       parent.children.splice(index, 1, ...nodes);
     } else {
       nodes = [node2];
     }
     return index + nodes.length;
+    function add(child) {
+      const previous2 = nodes[nodes.length - 1];
+      if (previous2 && previous2.type === "text" && child.type === "text") {
+        previous2.value += child.value;
+      } else {
+        nodes.push(child);
+      }
+    }
   }
 }
 function toPairs(tupleOrList) {
-  const result = [];
   if (!Array.isArray(tupleOrList)) {
     throw new TypeError("Expected find and replace tuple or list of tuples");
   }
-  const list2 = !tupleOrList[0] || Array.isArray(tupleOrList[0]) ? tupleOrList : [tupleOrList];
+  const result = [];
+  const list2 = !tupleOrList[0] || Array.isArray(tupleOrList[0]) ? (
+    /** @type {FindAndReplaceList} */
+    tupleOrList
+  ) : [
+    /** @type {FindAndReplaceTuple} */
+    tupleOrList
+  ];
   let index = -1;
   while (++index < list2.length) {
     const tuple = list2[index];
@@ -393,7 +433,10 @@ function gfmAutolinkLiteralToMarkdown() {
   };
 }
 function enterLiteralAutolink(token) {
-  this.enter({ type: "link", title: null, url: "", children: [] }, token);
+  this.enter(
+    { type: "link", title: null, url: "", children: [], position: void 0 },
+    token
+  );
 }
 function enterLiteralAutolinkValue(token) {
   this.config.enter.autolinkProtocol.call(this, token);
@@ -417,67 +460,109 @@ function transformGfmAutolinkLiterals(tree) {
   findAndReplace(
     tree,
     [
-      [/(https?:\/\/|www(?=\.))([-.\w]+)([^ \t\r\n]*)/gi, findUrl],
-      [/(?<=^|\s|\p{P}|\p{S})([-.\w+]+)@([-\w]+(?:\.[-\w]+)+)/gu, findEmail]
+      [
+        /(?<![\da-z])(https?:\/\/|www(?=\.))([\w-]*\.[\w\-.]*)([^\t\n\r ]*)/gi,
+        findUrl
+      ],
+      [
+        /(?<![\w+\-.@])xmpp:([\w+\-.]+)@([\w-]+(?:\.[\w-]+)+)(\/(?:[\w\-/]|\.(?=[\dA-Za-z]))*)?/g,
+        findXmpp
+      ],
+      [/(?<![\w+\-.@])mailto:([\w+\-.]+)@([\w-]+(?:\.[\w-]+)+)/g, findMailto],
+      [
+        /(?<![\w+\-.]|(?:^|[^\d@A-Za-z])(?:mailto|xmpp):)([\w+\-.]+)@([\w-]+(?:\.[\w-]+)+)/g,
+        findEmail
+      ]
     ],
     { ignore: ["link", "linkReference"] }
   );
 }
 function findUrl(_, protocol, domain2, path3, match) {
-  let prefix = "";
   if (!previous(match)) {
     return false;
   }
+  let prefix = "";
   if (/^w/i.test(protocol)) {
     domain2 = protocol + domain2;
     protocol = "";
     prefix = "http://";
   }
-  if (!isCorrectDomain(domain2)) {
+  if (unicodePunctuation(domain2.charCodeAt(0)) || !isCorrectDomain(domain2)) {
     return false;
   }
   const parts = splitUrl(domain2 + path3);
-  if (!parts[0]) return false;
   const result = {
     type: "link",
     title: null,
     url: prefix + protocol + parts[0],
-    children: [{ type: "text", value: protocol + parts[0] }]
+    children: [{ type: "text", value: protocol + parts[0], position: void 0 }],
+    position: void 0
   };
   if (parts[1]) {
-    return [result, { type: "text", value: parts[1] }];
+    return [result, { type: "text", value: parts[1], position: void 0 }];
   }
   return result;
 }
-function findEmail(_, atext, label, match) {
-  if (
-    // Not an expected previous character.
-    !previous(match, true) || // Label ends in not allowed character.
-    /[-\d_]$/.test(label)
-  ) {
+function findEmail(_, atext, label) {
+  if (/[\d\-_]$/.test(label)) {
     return false;
   }
   return {
     type: "link",
     title: null,
     url: "mailto:" + atext + "@" + label,
-    children: [{ type: "text", value: atext + "@" + label }]
+    children: [{ type: "text", value: atext + "@" + label, position: void 0 }],
+    position: void 0
+  };
+}
+function findMailto(_, atext, label) {
+  if (/[\d\-_]$/.test(label)) {
+    return false;
+  }
+  const value = "mailto:" + atext + "@" + label;
+  return {
+    type: "link",
+    title: null,
+    url: value,
+    children: [{ type: "text", value, position: void 0 }],
+    position: void 0
+  };
+}
+function findXmpp(matchValue, atext, label, resource, match) {
+  if (/[\d\-_]$/.test(label) || resource && (!/[A-Za-z]$/.test(resource) || match.input.charAt(match.index + matchValue.length) === "@")) {
+    return false;
+  }
+  const value = "xmpp:" + atext + "@" + label + (resource || "");
+  return {
+    type: "link",
+    title: null,
+    url: value,
+    children: [{ type: "text", value, position: void 0 }],
+    position: void 0
   };
 }
 function isCorrectDomain(domain2) {
   const parts = domain2.split(".");
-  if (parts.length < 2 || parts[parts.length - 1] && (/_/.test(parts[parts.length - 1]) || !/[a-zA-Z\d]/.test(parts[parts.length - 1])) || parts[parts.length - 2] && (/_/.test(parts[parts.length - 2]) || !/[a-zA-Z\d]/.test(parts[parts.length - 2]))) {
+  if (parts.length < 2 || parts[parts.length - 1] && (/_/.test(parts[parts.length - 1]) || !/[\dA-Za-z]/.test(parts[parts.length - 1])) || parts[parts.length - 2] && (/_/.test(parts[parts.length - 2]) || !/[\dA-Za-z]/.test(parts[parts.length - 2]))) {
     return false;
   }
   return true;
 }
 function splitUrl(url) {
-  const trailExec = /[!"&'),.:;<>?\]}]+$/.exec(url);
-  if (!trailExec) {
+  let index = url.length;
+  while (index > 0) {
+    const code3 = url.charCodeAt(index - 1);
+    if (code3 === 33 || code3 === 34 || code3 === 38 || code3 === 39 || code3 === 41 || code3 === 44 || code3 === 46 || code3 === 58 || code3 === 59 || code3 === 60 || code3 === 62 || code3 === 63 || code3 === 93 || code3 === 125) {
+      index--;
+    } else {
+      break;
+    }
+  }
+  if (index === url.length) {
     return [url, void 0];
   }
-  url = url.slice(0, trailExec.index);
-  let trail2 = trailExec[0];
+  let trail2 = url.slice(index);
+  url = url.slice(0, index);
   let closingParenIndex = trail2.indexOf(")");
   const openingParens = ccount(url, "(");
   let closingParens = ccount(url, ")");
@@ -489,10 +574,9 @@ function splitUrl(url) {
   }
   return [url, trail2];
 }
-function previous(match, email) {
+function previous(match) {
   const code3 = match.input.charCodeAt(match.index - 1);
-  return (match.index === 0 || unicodeWhitespace(code3) || unicodePunctuation(code3)) && // If it’s an email, the previous character should not be a slash.
-  (!email || code3 !== 47);
+  return match.index === 0 || unicodeWhitespace(code3) || unicodePunctuation(code3);
 }
 
 // node_modules/micromark-util-normalize-identifier/index.js
@@ -622,6 +706,7 @@ var constructsWithoutStrikethrough = [
   "titleQuote",
   "titleApostrophe"
 ];
+handleDelete.attention = attentionDelete;
 handleDelete.peek = peekDelete;
 function gfmStrikethroughFromMarkdown() {
   return {
@@ -632,34 +717,38 @@ function gfmStrikethroughFromMarkdown() {
 }
 function gfmStrikethroughToMarkdown() {
   return {
+    handlers: { delete: handleDelete },
     unsafe: [
       {
         character: "~",
         inConstruct: "phrasing",
         notInConstruct: constructsWithoutStrikethrough
       }
-    ],
-    handlers: { delete: handleDelete }
+    ]
   };
 }
 function enterStrikethrough(token) {
-  this.enter({ type: "delete", children: [] }, token);
+  this.enter({ type: "delete", children: [], position: void 0 }, token);
 }
 function exitStrikethrough(token) {
   this.exit(token);
 }
 function handleDelete(node2, _, state, info) {
   const tracker = state.createTracker(info);
+  const sequence = state.stack.includes("strikethrough") ? "~" : "~~";
   const exit2 = state.enter("strikethrough");
-  let value = tracker.move("~~");
+  let value = tracker.move(sequence);
   value += state.containerPhrasing(node2, {
     ...tracker.current(),
     before: value,
     after: "~"
   });
-  value += tracker.move("~~");
+  value += tracker.move(sequence);
   exit2();
   return value;
+}
+function attentionDelete() {
+  return { construct: "strikethrough", markers: ["~"], sizes: [2, 1] };
 }
 function peekDelete() {
   return "~";
@@ -747,9 +836,10 @@ function markdownTable(table, options) {
   while (++rowIndex < cellMatrix.length) {
     const row2 = cellMatrix[rowIndex];
     const sizes2 = sizeMatrix[rowIndex];
+    const cellsInRow = settings.fillRows === false ? Math.max(1, cellMatrix[rowIndex === 1 ? 0 : rowIndex].length) : mostCellsPerRow;
     columnIndex = -1;
     const line = [];
-    while (++columnIndex < mostCellsPerRow) {
+    while (++columnIndex < cellsInRow) {
       const cell = row2[columnIndex] || "";
       let before = "";
       let after = "";
@@ -759,11 +849,12 @@ function markdownTable(table, options) {
         if (code3 === 114) {
           before = " ".repeat(size);
         } else if (code3 === 99) {
+          const half = size / 2;
           if (size % 2) {
-            before = " ".repeat(size / 2 + 0.5);
-            after = " ".repeat(size / 2 - 0.5);
+            before = " ".repeat(half + 0.5);
+            after = " ".repeat(half - 0.5);
           } else {
-            before = " ".repeat(size / 2);
+            before = " ".repeat(half);
             after = before;
           }
         } else {
@@ -788,7 +879,7 @@ function markdownTable(table, options) {
       if (settings.padding !== false) {
         line.push(" ");
       }
-      if (settings.delimiterEnd !== false || columnIndex !== mostCellsPerRow - 1) {
+      if (settings.delimiterEnd !== false || columnIndex !== cellsInRow - 1) {
         line.push("|");
       }
     }
@@ -805,6 +896,34 @@ function toAlignment(value) {
   const code3 = typeof value === "string" ? value.codePointAt(0) : 0;
   return code3 === 67 || code3 === 99 ? 99 : code3 === 76 || code3 === 108 ? 108 : code3 === 82 || code3 === 114 ? 114 : 0;
 }
+
+// node_modules/mdast-util-phrasing/lib/index.js
+var phrasing = (
+  /** @type {(node?: unknown) => node is Exclude<PhrasingContent, Html>} */
+  convert([
+    "break",
+    "delete",
+    "emphasis",
+    // To do: next major: removed since footnotes were added to GFM.
+    "footnote",
+    "footnoteReference",
+    "image",
+    "imageReference",
+    "inlineCode",
+    // Enabled by `mdast-util-math`:
+    "inlineMath",
+    "link",
+    "linkReference",
+    // Enabled by `mdast-util-mdx`:
+    "mdxJsxTextElement",
+    // Enabled by `mdast-util-mdx`:
+    "mdxTextExpression",
+    "strong",
+    "text",
+    // Enabled by `mdast-util-directive`:
+    "textDirective"
+  ])
+);
 
 // node_modules/mdast-util-to-markdown/lib/handle/blockquote.js
 function blockquote(node2, _, state, info) {
@@ -847,8 +966,9 @@ function listInScope(stack, list2, none) {
 function hardBreak(_, _1, state, info) {
   let index = -1;
   while (++index < state.unsafe.length) {
-    if (state.unsafe[index].character === "\n" && patternInScope(state.stack, state.unsafe[index])) {
-      return /[ \t]/.test(info.before) ? "" : " ";
+    const pattern = state.unsafe[index];
+    if (pattern.character === "\n" && !pattern.before && !pattern.after && patternInScope(state.stack, pattern)) {
+      return /[\t ]/.test(info.before) ? "" : " ";
     }
   }
   return "\\\n";
@@ -883,8 +1003,8 @@ function formatCodeAsIndented(node2, state) {
   return Boolean(
     state.options.fences === false && node2.value && // If there’s no info…
     !node2.lang && // And there’s a non-whitespace character…
-    /[^ \r\n]/.test(node2.value) && // And the value doesn’t start or end in a blank…
-    !/^[\t ]*(?:[\r\n]|$)|(?:^|[\r\n])[\t ]*$/.test(node2.value)
+    /[^\n\r ]/.test(node2.value) && // And the value doesn’t start or end in a blank…
+    !/^[\t ]*(?:[\n\r]|$)|(?:^|[\n\r])[\t ]*$/.test(node2.value)
   );
 }
 
@@ -903,7 +1023,6 @@ function checkFence(state) {
 function code(node2, _, state, info) {
   const marker = checkFence(state);
   const raw = node2.value || "";
-  const suffix = marker === "`" ? "GraveAccent" : "Tilde";
   if (formatCodeAsIndented(node2, state)) {
     const exit3 = state.enter("codeIndented");
     const value2 = state.indentLines(raw, map2);
@@ -913,6 +1032,7 @@ function code(node2, _, state, info) {
   const tracker = state.createTracker(info);
   const sequence = marker.repeat(Math.max(longestStreak(raw, marker) + 1, 3));
   const exit2 = state.enter("codeFenced");
+  const suffix = marker === "`" ? "GraveAccent" : "Tilde";
   let value = tracker.move(sequence);
   if (node2.lang) {
     const subexit = state.enter(`codeFencedLang${suffix}`);
@@ -1029,11 +1149,6 @@ function checkEmphasis(state) {
   return marker;
 }
 
-// node_modules/mdast-util-to-markdown/lib/util/encode-character-reference.js
-function encodeCharacterReference(code3) {
-  return "&#x" + code3.toString(16).toUpperCase() + ";";
-}
-
 // node_modules/micromark-util-classify-character/index.js
 function classifyCharacter(code3) {
   if (code3 === null || markdownLineEndingOrSpace(code3) || unicodeWhitespace(code3)) {
@@ -1042,6 +1157,21 @@ function classifyCharacter(code3) {
   if (unicodePunctuation(code3)) {
     return 2;
   }
+}
+
+// node_modules/mdast-util-to-markdown/lib/util/character.js
+function firstCharacter(value) {
+  const code3 = value.codePointAt(0);
+  return code3 === void 0 ? "" : String.fromCodePoint(code3);
+}
+function lastCharacter(value) {
+  const code3 = value.codePointAt(value.length - 2);
+  return code3 !== void 0 && code3 > 65535 ? value.slice(-2) : value.slice(-1);
+}
+
+// node_modules/mdast-util-to-markdown/lib/util/encode-character-reference.js
+function encodeCharacterReference(code3) {
+  return "&#x" + code3.toString(16).toUpperCase() + ";";
 }
 
 // node_modules/mdast-util-to-markdown/lib/util/encode-info.js
@@ -1086,65 +1216,527 @@ function encodeInfo(outside, inside, marker) {
   );
 }
 
-// node_modules/mdast-util-to-markdown/lib/handle/emphasis.js
-emphasis.peek = emphasisPeek;
-function emphasis(node2, _, state, info) {
-  const marker = checkEmphasis(state);
-  const exit2 = state.enter("emphasis");
-  const tracker = state.createTracker(info);
-  const before = tracker.move(marker);
-  let between = tracker.move(
-    state.containerPhrasing(node2, {
-      after: marker,
-      before,
-      ...tracker.current()
-    })
-  );
-  const betweenHead = between.charCodeAt(0);
-  const open = encodeInfo(
-    info.before.charCodeAt(info.before.length - 1),
-    betweenHead,
-    marker
-  );
-  if (open.inside) {
-    between = encodeCharacterReference(betweenHead) + between.slice(1);
+// node_modules/micromark-util-html-tag-name/index.js
+var htmlBlockNames = [
+  "address",
+  "article",
+  "aside",
+  "base",
+  "basefont",
+  "blockquote",
+  "body",
+  "caption",
+  "center",
+  "col",
+  "colgroup",
+  "dd",
+  "details",
+  "dialog",
+  "dir",
+  "div",
+  "dl",
+  "dt",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "footer",
+  "form",
+  "frame",
+  "frameset",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "head",
+  "header",
+  "hr",
+  "html",
+  "iframe",
+  "legend",
+  "li",
+  "link",
+  "main",
+  "menu",
+  "menuitem",
+  "nav",
+  "noframes",
+  "ol",
+  "optgroup",
+  "option",
+  "p",
+  "param",
+  "search",
+  "section",
+  "summary",
+  "table",
+  "tbody",
+  "td",
+  "tfoot",
+  "th",
+  "thead",
+  "title",
+  "tr",
+  "track",
+  "ul"
+];
+var htmlRawNames = ["pre", "script", "style", "textarea"];
+
+// node_modules/mdast-util-to-markdown/lib/util/html-kind.js
+function htmlKind(value) {
+  if (value.charCodeAt(0) !== 60) return;
+  const next = value.charCodeAt(1);
+  if (next === 33) {
+    const code4 = value.charCodeAt(2);
+    if (code4 === 45) return 2;
+    if (code4 === 91) return 5;
+    if (asciiAlpha(code4)) return 4;
+    return;
   }
-  const betweenTail = between.charCodeAt(between.length - 1);
-  const close = encodeInfo(info.after.charCodeAt(0), betweenTail, marker);
-  if (close.inside) {
-    between = between.slice(0, -1) + encodeCharacterReference(betweenTail);
+  if (next === 63) return 3;
+  const closing = next === 47;
+  const start = closing ? 2 : 1;
+  let end = start;
+  let code3 = value.charCodeAt(end);
+  if (!asciiAlpha(code3)) return;
+  while (code3 === 45 || asciiAlphanumeric(code3)) {
+    code3 = value.charCodeAt(++end);
   }
-  const after = tracker.move(marker);
-  exit2();
-  state.attentionEncodeSurroundingInfo = {
-    after: close.outside,
-    before: open.outside
-  };
-  return before + between + after;
+  const name = value.slice(start, end).toLowerCase();
+  if (!closing && code3 !== 47 && htmlRawNames.includes(name)) {
+    return 1;
+  }
+  return htmlBlockNames.includes(name) ? 6 : 7;
 }
-function emphasisPeek(_, _1, state) {
+
+// node_modules/mdast-util-to-markdown/lib/util/container-phrasing.js
+var builtins = /* @__PURE__ */ new Map([
+  ["*", false],
+  ["_", true]
+]);
+function candidates(tokens, involved, runOf) {
+  const related = /* @__PURE__ */ new Set();
+  for (const token of tokens) {
+    const siblings = runOf.get(token);
+    if (siblings && token.attention && involved.some((d) => d.attention === token.attention)) {
+      for (const sibling of siblings.tokens) {
+        related.add(sibling.attention);
+      }
+    }
+  }
+  const ordered = [];
+  for (const token of tokens) {
+    if (token.attention && related.delete(token.attention)) {
+      ordered.push(token.attention);
+    }
+  }
+  ordered.reverse();
+  return ordered;
+}
+function check(tokens, before, after) {
+  const runs = [];
+  const wrong = /* @__PURE__ */ new Map();
+  const runOf = /* @__PURE__ */ new Map();
+  let index = 0;
+  while (index < tokens.length) {
+    if (!tokens[index].attention) {
+      index++;
+      continue;
+    }
+    const marker = tokens[index].value.charAt(0);
+    const strict = builtins.get(marker);
+    let end = index + 1;
+    while (end < tokens.length && tokens[end].attention && tokens[end].value.charAt(0) === marker) {
+      end++;
+    }
+    const head = index ? tokens[index - 1].value : before;
+    const previous2 = classifyCharacter(head.charCodeAt(head.length - 1));
+    const next = classifyCharacter(
+      (end < tokens.length ? tokens[end].value : after).charCodeAt(0)
+    );
+    const open = !next || next === 2 && Boolean(previous2);
+    const close = !previous2 || previous2 === 2 && Boolean(next);
+    const run = {
+      tokens: tokens.slice(index, end),
+      markers: [],
+      start: 0,
+      end: 0,
+      // Underscores are strict, they cannot open or close inside words.
+      open: strict ? open && (Boolean(previous2) || !close) : open,
+      close: strict ? close && (Boolean(next) || !open) : close,
+      // All builtins can split runs.
+      split: strict !== void 0
+    };
+    for (const token of run.tokens) {
+      wrong.set(token, [...run.tokens]);
+      runOf.set(token, run);
+      let size = token.value.length;
+      while (size--) run.markers.push(token);
+    }
+    run.end = run.markers.length;
+    runs.push(run);
+    index = end;
+  }
+  pair(runs, wrong);
+  index = -1;
+  while (++index < tokens.length) {
+    const involved = wrong.get(tokens[index]);
+    if (involved) return { attention: candidates(tokens, involved, runOf), index };
+  }
+}
+function encode(tokens, start) {
+  const token = tokens[start ? 0 : tokens.length - 1];
+  if (!token || token.attention) return;
+  const character = start ? firstCharacter(token.value) : lastCharacter(token.value);
+  const reference = encodeCharacterReference(
+    /** @type {number} */
+    character.codePointAt(0)
+  );
+  if (start) {
+    token.value = reference + token.value.slice(character.length);
+  } else {
+    let value = token.value.slice(0, token.value.length - character.length);
+    let escapes = 0;
+    while (value.charCodeAt(value.length - 1 - escapes) === 92) {
+      escapes++;
+    }
+    if (escapes % 2) value += "\\";
+    token.value = value + reference;
+  }
+}
+function improve(items, chosen, mistake, before, after) {
+  for (const attention3 of mistake.attention) {
+    const current = chosen.get(attention3) || attention3.sequences[0];
+    for (const sequence of attention3.sequences) {
+      if (sequence === current) continue;
+      const trial = new Map(chosen);
+      trial.set(attention3, sequence);
+      const tokens = render(items, trial, before, after);
+      const next = check(tokens, before, after);
+      if (!next || next.index > mistake.index) {
+        return { chosen: trial, mistake: next, tokens };
+      }
+    }
+  }
+}
+function pair(runs, wrong) {
+  const openersByMarker = /* @__PURE__ */ new Map();
+  for (const closer of runs) {
+    const marker = closer.tokens[0].value.charAt(0);
+    let openers = openersByMarker.get(marker);
+    if (!openers) {
+      openers = [];
+      openersByMarker.set(marker, openers);
+    }
+    let open = closer.close ? openers.length : 0;
+    while (open-- && closer.start < closer.end) {
+      const opener = openers[open];
+      const openerSize = opener.end - opener.start;
+      const closerSize = closer.end - closer.start;
+      if (closer.split ? (
+        // The rule of 3, on the sizes that are left.
+        (opener.close || closer.open) && closerSize % 3 && !((openerSize + closerSize) % 3)
+      ) : (
+        // Others pair whole runs of the same size.
+        openerSize !== opener.markers.length || openerSize !== closerSize
+      )) {
+        continue;
+      }
+      const size = closer.split ? openerSize > 1 && closerSize > 1 ? 2 : 1 : closerSize;
+      const opening = opener.markers.slice(opener.end - size, opener.end);
+      const closing = closer.markers.slice(closer.start, closer.start + size);
+      const openToken = opening[0];
+      const closeToken = closing[0];
+      if (
+        // Whole sequences:
+        // the markers of a sequence are next to each other,
+        // so if the first and last marker are of one sequence of that size,
+        // all markers are exactly that sequence.
+        openToken === opening[size - 1] && openToken.value.length === size && closeToken === closing[size - 1] && closeToken.value.length === size && // Of the same attention, so its opening and closing sequence.
+        openToken.attention === closeToken.attention
+      ) {
+        wrong.delete(openToken);
+        wrong.delete(closeToken);
+      } else {
+        const involved = [.../* @__PURE__ */ new Set([...opening, ...closing])];
+        for (const token of involved) {
+          const list2 = wrong.get(token);
+          if (list2) list2.push(...involved);
+        }
+      }
+      opener.end -= size;
+      closer.start += size;
+      if (opener.start === opener.end) openers.splice(open, 1);
+      open = openers.length;
+    }
+    if (closer.open && closer.start < closer.end) openers.push(closer);
+  }
+}
+function attentionSequences(type, markers, sizes) {
+  if (markers.length === 0) {
+    throw new Error(
+      "Cannot serialize `" + type + "` as attention without markers, expected one or more markers"
+    );
+  }
+  if (sizes.length === 0) {
+    throw new Error(
+      "Cannot serialize `" + type + "` as attention without sizes, expected one or more sizes"
+    );
+  }
+  for (const size of sizes) {
+    if (!Number.isSafeInteger(size) || size < 1) {
+      throw new Error(
+        "Cannot serialize `" + type + "` as attention with `" + size + "` as size, expected positive integer"
+      );
+    }
+  }
+  const sequences = [];
+  for (const marker of markers) {
+    if (marker.length !== 1) {
+      throw new Error(
+        "Cannot serialize `" + type + "` as attention with `" + marker + "` as marker, expected a single ascii character"
+      );
+    }
+    if (!asciiPunctuation(marker.charCodeAt(0))) {
+      throw new Error(
+        "Cannot serialize `" + type + "` as attention with `" + marker + "` as marker, expected ascii punctuation"
+      );
+    }
+    for (const size of sizes) {
+      sequences.push(marker.repeat(size));
+    }
+  }
+  return sequences;
+}
+function phrasing2(parent, state, info) {
+  const indexStack = state.indexStack;
+  const children = parent.children || [];
+  const results = [];
+  let index = -1;
+  let before = info.before;
+  indexStack.push(-1);
+  let tracker = state.createTracker(info);
+  while (++index < children.length) {
+    const child = children[index];
+    let after;
+    indexStack[indexStack.length - 1] = index;
+    if (index + 1 < children.length) {
+      let handle3 = state.handle.handlers[children[index + 1].type];
+      if (handle3 && handle3.peek) handle3 = handle3.peek;
+      after = handle3 ? firstCharacter(
+        handle3(children[index + 1], parent, state, {
+          before: "",
+          after: "",
+          ...tracker.current()
+        })
+      ) : "";
+    } else {
+      after = info.after;
+    }
+    const previous2 = results[results.length - 1];
+    if (typeof previous2 === "string" && (before === "\r" || before === "\n") && child.type === "html" && htmlKind(child.value) !== 7) {
+      results[results.length - 1] = previous2.replace(/(\r?\n|\r)$/, " ");
+      before = " ";
+      tracker = state.createTracker(info);
+      tracker.move(serialize2(results, info.before, info.after));
+    }
+    const handle2 = state.handle.handlers[child.type];
+    if (handle2 && handle2.attention) {
+      const item = attentionItem(
+        /** @type {PhrasingParents} */
+        child,
+        handle2.attention,
+        state,
+        tracker
+      );
+      if (!item) continue;
+      results.push(item);
+      before = lastCharacter(item.sequences[0]);
+    } else {
+      const value = state.handle(child, parent, state, {
+        ...tracker.current(),
+        after,
+        before
+      });
+      if (!value) continue;
+      tracker.move(value);
+      results.push(value);
+      before = lastCharacter(value);
+    }
+  }
+  indexStack.pop();
+  return results;
+}
+function attentionItem(node2, attention3, state, tracker) {
+  const { construct, markers, sizes } = attention3(node2, state);
+  const sequences = attentionSequences(node2.type, markers, sizes);
+  const sequence = sequences[0];
+  const exit2 = state.enter(construct);
+  const inside = state.createTracker(tracker.current());
+  inside.move(sequence);
+  const children = phrasing2(node2, state, {
+    ...inside.current(),
+    before: sequence,
+    after: sequence
+  });
+  exit2();
+  if (children.length === 0) return;
+  tracker.move(sequence);
+  tracker.move(serialize2(children, sequence, sequence));
+  tracker.move(sequence);
+  return { children, sequences };
+}
+function fix(items, chosen, before, after) {
+  let tokens = render(items, chosen, before, after);
+  let mistake = check(tokens, before, after);
+  while (mistake) {
+    const next = improve(items, chosen, mistake, before, after);
+    if (!next) return;
+    chosen = next.chosen;
+    tokens = next.tokens;
+    mistake = next.mistake;
+  }
+  return tokens;
+}
+function guess(items, chosen, before, after) {
+  let previous2 = before;
+  let index = -1;
+  while (++index < items.length) {
+    const item = items[index];
+    if (typeof item === "string") {
+      previous2 = "";
+      continue;
+    }
+    const next = index === items.length - 1 ? after : "";
+    const sequence = item.sequences.find(function(value) {
+      const marker = value.charAt(0);
+      return marker !== previous2.charAt(0) && marker !== next.charAt(0) || items.length === 1 && builtins.has(marker) && value.length > before.length;
+    }) || item.sequences[0];
+    if (sequence !== item.sequences[0]) chosen.set(item, sequence);
+    guess(item.children, chosen, sequence, sequence);
+    previous2 = sequence;
+  }
+}
+function render(items, chosen, before, after) {
+  const tokens = [];
+  let encodeAfter;
+  let previous2 = lastCharacter(before);
+  let index = -1;
+  while (++index < items.length) {
+    const item = items[index];
+    if (typeof item === "string") {
+      const token = { value: item, attention: void 0 };
+      if (encodeAfter && encodeAfter === firstCharacter(item)) {
+        encode([token], true);
+      }
+      encodeAfter = void 0;
+      tokens.push(token);
+      if (token.value) previous2 = lastCharacter(token.value);
+      continue;
+    }
+    const sequence = chosen.get(item) || item.sequences[0];
+    const marker = sequence.charAt(0);
+    const next = items[index + 1];
+    const outsideBefore = previous2;
+    const outsideAfter = firstCharacter(
+      next === void 0 ? after : typeof next === "string" ? next : chosen.get(next) || next.sequences[0]
+    );
+    const inside = render(item.children, chosen, sequence, sequence);
+    const head = inside[0].value;
+    const open = encodeInfo(
+      outsideBefore.charCodeAt(outsideBefore.length - 1),
+      head.charCodeAt(0),
+      marker
+    );
+    if (open.inside) encode(inside, true);
+    const tail = lastCharacter(inside[inside.length - 1].value);
+    const close = encodeInfo(
+      outsideAfter.charCodeAt(0),
+      tail.charCodeAt(tail.length - 1),
+      marker
+    );
+    if (close.inside) encode(inside, false);
+    if (open.outside && outsideBefore !== "\n" && outsideBefore !== "\r") {
+      encode(tokens, false);
+    }
+    if (close.outside) encodeAfter = outsideAfter;
+    tokens.push({ value: sequence, attention: item }, ...inside, {
+      value: sequence,
+      attention: item
+    });
+    previous2 = sequence.charAt(sequence.length - 1);
+  }
+  return tokens;
+}
+function serialize2(items, before, after) {
+  const guessed = /* @__PURE__ */ new Map();
+  guess(items, guessed, before, after);
+  const tokens = (
+    // Start from guesses (based on the preferred sequences).
+    (guessed.size > 0 ? fix(items, guessed, before, after) : void 0) || // If stuck, start from the preferred sequences instead.
+    fix(items, /* @__PURE__ */ new Map(), before, after) || // If stuck again, use the preferred sequences as they are.
+    render(items, /* @__PURE__ */ new Map(), before, after)
+  );
+  let result = "";
+  for (const token of tokens) result += token.value;
+  return result;
+}
+
+// node_modules/mdast-util-to-markdown/lib/handle/emphasis.js
+emphasis.attention = attention;
+emphasis.peek = peek;
+function emphasis(node2, _, state, info) {
+  const exit2 = state.enter("phrasing");
+  const item = attentionItem(node2, attention, state, state.createTracker(info));
+  const value = item ? serialize2([item], info.before, info.after) : "";
+  exit2();
+  return value;
+}
+function attention(_, state) {
+  const marker = checkEmphasis(state);
+  return {
+    construct: "emphasis",
+    markers: marker === "*" ? ["*", "_"] : ["_", "*"],
+    sizes: [1]
+  };
+}
+function peek(_, _1, state) {
   return state.options.emphasis || "*";
 }
 
 // node_modules/unist-util-visit/lib/index.js
-function visit(tree, testOrVisitor, visitorOrReverse, maybeReverse) {
+function visit(tree, testOrEnterOrVisitors, enterOrVisitorsOrReverse, maybeReverse) {
+  let check2;
+  let visitors;
   let reverse;
-  let test;
-  let visitor;
-  if (typeof testOrVisitor === "function" && typeof visitorOrReverse !== "function") {
-    test = void 0;
-    visitor = testOrVisitor;
-    reverse = visitorOrReverse;
-  } else {
-    test = testOrVisitor;
-    visitor = visitorOrReverse;
+  if (typeof enterOrVisitorsOrReverse === "function" || enterOrVisitorsOrReverse && typeof enterOrVisitorsOrReverse === "object") {
+    check2 = /** @type {Test} */
+    testOrEnterOrVisitors;
+    visitors = enterOrVisitorsOrReverse;
     reverse = maybeReverse;
+  } else {
+    visitors = /** @type {Visitor | Visitors} */
+    testOrEnterOrVisitors;
+    reverse = enterOrVisitorsOrReverse;
   }
-  visitParents(tree, test, overload, reverse);
-  function overload(node2, parents) {
-    const parent = parents[parents.length - 1];
-    const index = parent ? parent.children.indexOf(node2) : void 0;
-    return visitor(node2, index, parent);
+  if (typeof visitors === "function") {
+    visitParents(tree, check2, wrap(visitors), reverse);
+  } else {
+    visitParents(tree, check2, wrapVisitors(visitors), reverse);
+  }
+}
+function wrapVisitors(visitors) {
+  if (!visitors || typeof visitors !== "object") return visitors;
+  return {
+    enter: typeof visitors.enter === "function" ? wrap(visitors.enter) : visitors.enter,
+    exit: typeof visitors.exit === "function" ? wrap(visitors.exit) : visitors.exit
+  };
+}
+function wrap(visitor) {
+  return overload;
+  function overload(node2, parents, index) {
+    return visitor(node2, index, parents[parents.length - 1]);
   }
 }
 
@@ -1229,8 +1821,9 @@ function heading(node2, _, state, info) {
     after: "\n",
     ...tracker.current()
   });
-  if (/^[\t ]/.test(value)) {
-    value = encodeCharacterReference(value.charCodeAt(0)) + value.slice(1);
+  const head = value.charCodeAt(0);
+  if (head === 9 || head === 32) {
+    value = encodeCharacterReference(head) + value.slice(1);
   }
   value = value ? sequence + " " + value : sequence;
   if (state.options.closeAtx) {
@@ -1323,7 +1916,9 @@ function imageReference(node2, _, state, info) {
   value += tracker.move(alt + "][");
   subexit();
   const stack = state.stack;
-  state.stack = [];
+  state.stack = stack.filter(function(d) {
+    return d !== "phrasing";
+  });
   subexit = state.enter("reference");
   const reference = state.safe(state.associationId(node2), {
     before: value,
@@ -1355,14 +1950,14 @@ function inlineCode(node2, _, state) {
   while (new RegExp("(^|[^`])" + sequence + "([^`]|$)").test(value)) {
     sequence += "`";
   }
-  if (/[^ \r\n]/.test(value) && (/^[ \r\n]/.test(value) && /[ \r\n]$/.test(value) || /^`|`$/.test(value))) {
+  if (/[^\n\r ]/.test(value) && (/^[\n\r ]/.test(value) && /[\n\r ]$/.test(value) || /^`|`$/.test(value))) {
     value = " " + value + " ";
   }
   while (++index < state.unsafe.length) {
     const pattern = state.unsafe[index];
     const expression = state.compilePattern(pattern);
-    let match;
     if (!pattern.atBreak) continue;
+    let match;
     while (match = expression.exec(value)) {
       let position = match.index;
       if (value.charCodeAt(position) === 10 && value.charCodeAt(position - 1) === 13) {
@@ -1382,11 +1977,11 @@ function formatLinkAsAutolink(node2, state) {
   const raw = toString(node2);
   return Boolean(
     !state.options.resourceLink && // If there’s a url…
-    node2.url && // And there’s a no title…
+    node2.url && // And there’s no title…
     !node2.title && // And the content of `node` is a single text node…
     node2.children && node2.children.length === 1 && node2.children[0].type === "text" && // And if the url is the same as the content…
     (raw === node2.url || "mailto:" + raw === node2.url) && // And that starts w/ a protocol…
-    /^[a-z][a-z+.-]+:/i.test(node2.url) && // And that doesn’t contain ASCII control codes (character escapes and
+    /^[a-z][+\-.a-z]+:/i.test(node2.url) && // And that doesn’t contain ASCII control codes (character escapes and
     // references don’t work), space, or angle brackets…
     !/[\0- <>\u007F]/.test(node2.url)
   );
@@ -1398,12 +1993,12 @@ function link(node2, _, state, info) {
   const quote = checkQuote(state);
   const suffix = quote === '"' ? "Quote" : "Apostrophe";
   const tracker = state.createTracker(info);
-  let exit2;
-  let subexit;
   if (formatLinkAsAutolink(node2, state)) {
     const stack = state.stack;
-    state.stack = [];
-    exit2 = state.enter("autolink");
+    state.stack = stack.filter(function(d) {
+      return d !== "phrasing";
+    });
+    const exit3 = state.enter("autolink");
     let value2 = tracker.move("<");
     value2 += tracker.move(
       state.containerPhrasing(node2, {
@@ -1413,26 +2008,35 @@ function link(node2, _, state, info) {
       })
     );
     value2 += tracker.move(">");
-    exit2();
+    exit3();
     state.stack = stack;
     return value2;
   }
-  exit2 = state.enter("link");
-  subexit = state.enter("label");
+  const exit2 = state.enter("link");
+  let subexit = state.enter("label");
   let value = tracker.move("[");
-  value += tracker.move(
-    state.containerPhrasing(node2, {
-      before: value,
-      after: "](",
-      ...tracker.current()
-    })
-  );
-  value += tracker.move("](");
+  const text3 = state.containerPhrasing(node2, {
+    before: value,
+    after: "](",
+    ...tracker.current()
+  });
+  value += tracker.move(text3);
   subexit();
+  value += tracker.move("](");
+  const enclose = /[\0- \u007F]/.test(node2.url);
+  const last = info.before.charAt(info.before.length - 1);
+  let title = node2.title || void 0;
+  if (!title && !enclose && (last === "\n" || last === "\r")) {
+    let index = 0;
+    while (index < text3.length && text3.charCodeAt(index) !== 93) {
+      index += text3.charCodeAt(index) === 92 ? 2 : 1;
+    }
+    if (text3.charCodeAt(index + 1) === 58) title = "";
+  }
   if (
     // If there’s no url but there is a title…
-    !node2.url && node2.title || // If there are control characters or whitespace.
-    /[\0- \u007F]/.test(node2.url)
+    !node2.url && typeof title === "string" || // If there are control characters or whitespace.
+    enclose
   ) {
     subexit = state.enter("destinationLiteral");
     value += tracker.move("<");
@@ -1445,17 +2049,17 @@ function link(node2, _, state, info) {
     value += tracker.move(
       state.safe(node2.url, {
         before: value,
-        after: node2.title ? " " : ")",
+        after: typeof title === "string" ? " " : ")",
         ...tracker.current()
       })
     );
   }
   subexit();
-  if (node2.title) {
+  if (typeof title === "string") {
     subexit = state.enter(`title${suffix}`);
     value += tracker.move(" " + quote);
     value += tracker.move(
-      state.safe(node2.title, {
+      state.safe(title, {
         before: value,
         after: quote,
         ...tracker.current()
@@ -1488,7 +2092,9 @@ function linkReference(node2, _, state, info) {
   value += tracker.move(text3 + "][");
   subexit();
   const stack = state.stack;
-  state.stack = [];
+  state.stack = stack.filter(function(d) {
+    return d !== "phrasing";
+  });
   subexit = state.enter("reference");
   const reference = state.safe(state.associationId(node2), {
     before: value,
@@ -1654,41 +2260,16 @@ function paragraph(node2, _, state, info) {
   return value;
 }
 
-// node_modules/mdast-util-phrasing/lib/index.js
-var phrasing = (
-  /** @type {(node?: unknown) => node is Exclude<PhrasingContent, Html>} */
-  convert([
-    "break",
-    "delete",
-    "emphasis",
-    // To do: next major: removed since footnotes were added to GFM.
-    "footnote",
-    "footnoteReference",
-    "image",
-    "imageReference",
-    "inlineCode",
-    // Enabled by `mdast-util-math`:
-    "inlineMath",
-    "link",
-    "linkReference",
-    // Enabled by `mdast-util-mdx`:
-    "mdxJsxTextElement",
-    // Enabled by `mdast-util-mdx`:
-    "mdxTextExpression",
-    "strong",
-    "text",
-    // Enabled by `mdast-util-directive`:
-    "textDirective"
-  ])
-);
-
 // node_modules/mdast-util-to-markdown/lib/handle/root.js
 function root(node2, _, state, info) {
-  const hasPhrasing = node2.children.some(function(d2) {
-    return phrasing(d2);
+  const hasPhrasing = node2.children.some(function(d) {
+    return phrasing(d);
   });
-  const container = hasPhrasing ? state.containerPhrasing : state.containerFlow;
-  return container.call(state, node2, info);
+  if (!hasPhrasing) return state.containerFlow(node2, info);
+  const exit2 = state.enter("phrasing");
+  const value = state.containerPhrasing(node2, info);
+  exit2();
+  return value;
 }
 
 // node_modules/mdast-util-to-markdown/lib/util/check-strong.js
@@ -1703,48 +2284,36 @@ function checkStrong(state) {
 }
 
 // node_modules/mdast-util-to-markdown/lib/handle/strong.js
-strong.peek = strongPeek;
+strong.attention = attention2;
+strong.peek = peek2;
 function strong(node2, _, state, info) {
-  const marker = checkStrong(state);
-  const exit2 = state.enter("strong");
-  const tracker = state.createTracker(info);
-  const before = tracker.move(marker + marker);
-  let between = tracker.move(
-    state.containerPhrasing(node2, {
-      after: marker,
-      before,
-      ...tracker.current()
-    })
-  );
-  const betweenHead = between.charCodeAt(0);
-  const open = encodeInfo(
-    info.before.charCodeAt(info.before.length - 1),
-    betweenHead,
-    marker
-  );
-  if (open.inside) {
-    between = encodeCharacterReference(betweenHead) + between.slice(1);
-  }
-  const betweenTail = between.charCodeAt(between.length - 1);
-  const close = encodeInfo(info.after.charCodeAt(0), betweenTail, marker);
-  if (close.inside) {
-    between = between.slice(0, -1) + encodeCharacterReference(betweenTail);
-  }
-  const after = tracker.move(marker + marker);
+  const exit2 = state.enter("phrasing");
+  const item = attentionItem(node2, attention2, state, state.createTracker(info));
+  const value = item ? serialize2([item], info.before, info.after) : "";
   exit2();
-  state.attentionEncodeSurroundingInfo = {
-    after: close.outside,
-    before: open.outside
-  };
-  return before + between + after;
+  return value;
 }
-function strongPeek(_, _1, state) {
+function attention2(_, state) {
+  const marker = checkStrong(state);
+  return {
+    construct: "strong",
+    markers: marker === "*" ? ["*", "_"] : ["_", "*"],
+    sizes: [2]
+  };
+}
+function peek2(_, _1, state) {
   return state.options.strong || "*";
 }
 
 // node_modules/mdast-util-to-markdown/lib/handle/text.js
-function text(node2, _, state, info) {
-  return state.safe(node2.value, info);
+function text(node2, parent, state, info) {
+  const siblings = parent ? parent.children : [];
+  const index = state.indexStack[state.indexStack.length - 1];
+  return state.safe(node2.value, {
+    ...info,
+    afterNode: siblings[index + 1],
+    beforeNode: siblings[index - 1]
+  });
 }
 
 // node_modules/mdast-util-to-markdown/lib/util/check-rule-repetition.js
@@ -1811,10 +2380,11 @@ function enterTable(token) {
   this.enter(
     {
       type: "table",
-      align: align.map(function(d2) {
-        return d2 === "none" ? null : d2;
+      align: align.map(function(d) {
+        return d === "none" ? null : d;
       }),
-      children: []
+      children: [],
+      position: void 0
     },
     token
   );
@@ -1825,13 +2395,13 @@ function exitTable(token) {
   this.data.inTable = void 0;
 }
 function enterRow(token) {
-  this.enter({ type: "tableRow", children: [] }, token);
+  this.enter({ type: "tableRow", children: [], position: void 0 }, token);
 }
 function exit(token) {
   this.exit(token);
 }
 function enterCell(token) {
-  this.enter({ type: "tableCell", children: [] }, token);
+  this.enter({ type: "tableCell", children: [], position: void 0 }, token);
 }
 function exitCodeText(token) {
   let value = this.resume();
@@ -1848,11 +2418,20 @@ function replace($0, $1) {
 }
 function gfmTableToMarkdown(options) {
   const settings = options || {};
-  const padding = settings.tableCellPadding;
-  const alignDelimiters = settings.tablePipeAlign;
-  const stringLength = settings.stringLength;
+  const {
+    tableCellPadding: padding,
+    tablePipeAlign: alignDelimiters,
+    stringLength
+  } = settings;
   const around = padding ? " " : "|";
   return {
+    handlers: {
+      inlineCode: inlineCodeWithTable,
+      table: handleTable,
+      tableCell: handleTableCell,
+      tableRow: handleTableRow
+    },
+    join: [joinTable],
     unsafe: [
       { character: "\r", inConstruct: "tableCell" },
       { character: "\n", inConstruct: "tableCell" },
@@ -1870,16 +2449,22 @@ function gfmTableToMarkdown(options) {
       // breaks, and setex heading underlines though:
       // <https://github.com/syntax-tree/mdast-util-to-markdown/blob/51a2038/lib/unsafe.js#L57>
       { atBreak: true, character: "-", after: "[:|-]" }
-    ],
-    handlers: {
-      inlineCode: inlineCodeWithTable,
-      table: handleTable,
-      tableCell: handleTableCell,
-      tableRow: handleTableRow
-    }
+    ]
   };
   function handleTable(node2, _, state, info) {
-    return serializeData(handleTableAsData(node2, state, info), node2.align);
+    const matrix = handleTableAsData(node2, state, info);
+    const head = matrix[0];
+    if (head) {
+      let columns = node2.align ? node2.align.length : 0;
+      let index = -1;
+      if (!columns) {
+        while (++index < matrix.length) {
+          if (matrix[index].length > columns) columns = matrix[index].length;
+        }
+      }
+      while (head.length < columns) head.push("");
+    }
+    return serializeData(matrix, node2.align);
   }
   function handleTableRow(node2, _, state, info) {
     const row = handleTableRowAsData(node2, state, info);
@@ -1901,16 +2486,14 @@ function gfmTableToMarkdown(options) {
   function serializeData(matrix, align) {
     return markdownTable(matrix, {
       align,
-      // @ts-expect-error: `markdown-table` types should support `null`.
       alignDelimiters,
-      // @ts-expect-error: `markdown-table` types should support `null`.
+      fillRows: false,
       padding,
-      // @ts-expect-error: `markdown-table` types should support `null`.
       stringLength
     });
   }
   function handleTableAsData(node2, state, info) {
-    const children = node2.children;
+    const { children } = node2;
     let index = -1;
     const result = [];
     const subexit = state.enter("table");
@@ -1921,7 +2504,7 @@ function gfmTableToMarkdown(options) {
     return result;
   }
   function handleTableRowAsData(node2, state, info) {
-    const children = node2.children;
+    const { children } = node2;
     let index = -1;
     const result = [];
     const subexit = state.enter("tableRow");
@@ -1932,12 +2515,41 @@ function gfmTableToMarkdown(options) {
     return result;
   }
   function inlineCodeWithTable(node2, parent, state) {
-    let value = handle.inlineCode(node2, parent, state);
-    if (state.stack.includes("tableCell")) {
-      value = value.replace(/\|/g, "\\$&");
+    const value = handle.inlineCode(node2, parent, state);
+    if (!state.stack.includes("tableCell")) return value;
+    const result = [];
+    let start = 0;
+    let index = value.indexOf("|");
+    while (index !== -1) {
+      let before = index;
+      while (before > start && value.charCodeAt(before - 1) === 92) {
+        before--;
+      }
+      result.push(value.slice(start, index));
+      if ((index - before) % 2 === 0) result.push("\\");
+      start = index;
+      index = value.indexOf("|", index + 1);
     }
-    return value;
+    result.push(value.slice(start));
+    return result.join("");
   }
+}
+function joinTable(left, right, parent, state) {
+  if (left.type === "table" && parent.type === "listItem" && parent.spread === false && (right.type === "definition" || right.type === "heading" && formatHeadingAsSetext2(right, state) || right.type === "paragraph" || right.type === "table")) {
+    return 1;
+  }
+}
+function formatHeadingAsSetext2(node2, state) {
+  let literalWithBreak = false;
+  visit(node2, function(node3) {
+    if (node3.type === "break" || "value" in node3 && /\r?\n|\r/.test(node3.value)) {
+      literalWithBreak = true;
+      return EXIT;
+    }
+  });
+  return Boolean(
+    (!node2.depth || node2.depth < 3) && toString(node2) && (state.options.setext || literalWithBreak)
+  );
 }
 
 // node_modules/mdast-util-gfm-task-list-item/lib/index.js
@@ -1952,8 +2564,8 @@ function gfmTaskListItemFromMarkdown() {
 }
 function gfmTaskListItemToMarkdown() {
   return {
-    unsafe: [{ atBreak: true, character: "-", after: "[:|-]" }],
-    handlers: { listItem: listItemWithTaskListItem }
+    handlers: { paragraph: paragraphWithTaskListItem },
+    join: [joinDefinitionsBeforeTaskListItemParagraph]
   };
 }
 function exitCheck(token) {
@@ -1970,46 +2582,63 @@ function exitParagraphWithTaskListItem(token) {
     if (head && head.type === "text") {
       const siblings = parent.children;
       let index = -1;
-      let firstParaghraph;
+      let firstParagraph;
       while (++index < siblings.length) {
         const sibling = siblings[index];
         if (sibling.type === "paragraph") {
-          firstParaghraph = sibling;
+          firstParagraph = sibling;
           break;
         }
       }
-      if (firstParaghraph === node2) {
+      if (firstParagraph === node2) {
         head.value = head.value.slice(1);
         if (head.value.length === 0) {
           node2.children.shift();
         } else if (node2.position && head.position && typeof head.position.start.offset === "number") {
           head.position.start.column++;
           head.position.start.offset++;
-          node2.position.start = Object.assign({}, head.position.start);
+          node2.position.start = { ...head.position.start };
         }
       }
     }
   }
   this.exit(token);
 }
-function listItemWithTaskListItem(node2, parent, state, info) {
-  const head = node2.children[0];
-  const checkable = typeof node2.checked === "boolean" && head && head.type === "paragraph";
-  const checkbox = "[" + (node2.checked ? "x" : " ") + "] ";
+function paragraphWithTaskListItem(node2, parent, state, info) {
+  if (!parent || parent.type !== "listItem" || taskListItemParagraph(parent) !== node2) {
+    return handle.paragraph(node2, parent, state, info);
+  }
+  const checkbox = "[" + (parent.checked ? "x" : " ") + "] ";
   const tracker = state.createTracker(info);
-  if (checkable) {
-    tracker.move(checkbox);
+  tracker.move(checkbox);
+  const value = handle.paragraph(
+    node2.children.length > 0 ? node2 : { type: "paragraph", children: [{ type: "text", value: " " }] },
+    parent,
+    state,
+    { ...info, ...tracker.current() }
+  );
+  return checkbox + value;
+}
+function joinDefinitionsBeforeTaskListItemParagraph(left, _, parent) {
+  if (!(left.type === "definition" && parent.type === "listItem")) {
+    return;
   }
-  let value = handle.listItem(node2, parent, state, {
-    ...info,
-    ...tracker.current()
-  });
-  if (checkable) {
-    value = value.replace(/^(?:[*+-]|\d+\.)([\r\n]| {1,3})/, check);
+  const paragraph2 = taskListItemParagraph(parent);
+  if (paragraph2 && parent.children.indexOf(left) < parent.children.indexOf(paragraph2)) {
+    return 0;
   }
-  return value;
-  function check($0) {
-    return $0 + checkbox;
+}
+function taskListItemParagraph(node2) {
+  if (typeof node2.checked !== "boolean") {
+    return;
+  }
+  for (const child of node2.children) {
+    if (child.type === "paragraph") {
+      return child;
+    }
+    if (child.type !== "definition") {
+      return;
+    }
   }
 }
 
@@ -2459,7 +3088,7 @@ function resolveAll(constructs2, events, context) {
 
 // node_modules/micromark-factory-space/index.js
 function factorySpace(effects, ok3, type, max) {
-  const limit = max ? max - 1 : Number.POSITIVE_INFINITY;
+  const limit = max ? max - 1 : Infinity;
   let size = 0;
   return start;
   function start(code3) {
@@ -2869,14 +3498,19 @@ var EditMap = class {
    */
   constructor() {
     this.map = [];
+    this.index = /* @__PURE__ */ new Map();
   }
   /**
    * Create an edit: a remove and/or add at a certain place.
    *
    * @param {number} index
+   *   Index at which to apply the edit.
    * @param {number} remove
+   *   Count of items to remove at the index.
    * @param {Array<Event>} add
+   *   Items to add at the index.
    * @returns {undefined}
+   *   Nothing.
    */
   add(index, remove, add) {
     addImplementation(this, index, remove, add);
@@ -2897,11 +3531,13 @@ var EditMap = class {
    * Done, change the events.
    *
    * @param {Array<Event>} events
+   *   List of events to apply the edits to.
    * @returns {undefined}
+   *   Nothing.
    */
   consume(events) {
-    this.map.sort(function(a2, b) {
-      return a2[0] - b[0];
+    this.map.sort(function(a, b) {
+      return a[0] - b[0];
     });
     if (this.map.length === 0) {
       return;
@@ -2923,22 +3559,22 @@ var EditMap = class {
       slice = vecs.pop();
     }
     this.map.length = 0;
+    this.index.clear();
   }
 };
 function addImplementation(editMap, at, remove, add) {
-  let index = 0;
   if (remove === 0 && add.length === 0) {
     return;
   }
-  while (index < editMap.map.length) {
-    if (editMap.map[index][0] === at) {
-      editMap.map[index][1] += remove;
-      editMap.map[index][2].push(...add);
-      return;
-    }
-    index += 1;
+  const existing = editMap.index.get(at);
+  if (existing) {
+    existing[1] += remove;
+    existing[2].push(...add);
+    return;
   }
-  editMap.map.push([at, remove, add]);
+  const change = [at, remove, add];
+  editMap.map.push(change);
+  editMap.index.set(at, change);
 }
 
 // node_modules/micromark-extension-gfm-table/lib/infer.js
@@ -2989,10 +3625,15 @@ function tokenizeTable(effects, ok3, nok) {
   function start(code3) {
     let index = self.events.length - 1;
     while (index > -1) {
-      const type = self.events[index][1].type;
+      const {
+        type
+      } = self.events[index][1];
       if (type === "lineEnding" || // Note: markdown-rs uses `whitespace` instead of `linePrefix`
-      type === "linePrefix") index--;
-      else break;
+      type === "linePrefix") {
+        index--;
+      } else {
+        break;
+      }
     }
     const tail = index > -1 ? self.events[index][1].type : null;
     const next = tail === "tableHead" || tail === "tableRow" ? bodyRowStart : headRowBefore;
@@ -3323,9 +3964,9 @@ function flushCell(map3, context, range, rowKind, rowEnd, previousCell) {
       start[1].type = "chunkText";
       start[1].contentType = "text";
       if (range[3] > range[2] + 1) {
-        const a2 = range[2] + 1;
+        const a = range[2] + 1;
         const b = range[3] - range[2] - 1;
-        map3.add(a2, b, []);
+        map3.add(a, b, []);
       }
     }
     map3.add(range[3] + 1, 0, [["exit", valueToken, context]]);
@@ -3740,34 +4381,13 @@ var example_default = ".example-component {\n  padding: 8px 16px;\n  background:
 
 // src/components/scripts/example.inline.ts
 var example_inline_default = 'function l(){let e=window.location.pathname;return e.startsWith("/")&&(e=e.slice(1)),e.endsWith("/")&&(e=e.slice(0,-1)),e||"index"}function r(){let e=document.querySelectorAll(".example-component");if(e.length===0)return;let t=[];function o(n){(n.ctrlKey||n.metaKey)&&n.shiftKey&&n.key.toLowerCase()==="e"&&(n.preventDefault(),console.log("[ExampleComponent] Keyboard shortcut triggered!"))}document.addEventListener("keydown",o),t.push(()=>document.removeEventListener("keydown",o));for(let n of e){let i=()=>{console.log("[ExampleComponent] Clicked!")};n.addEventListener("click",i),t.push(()=>n.removeEventListener("click",i))}typeof window<"u"&&window.addCleanup&&window.addCleanup(()=>{t.forEach(n=>n())}),console.log("[ExampleComponent] Initialized with",e.length,"component(s)")}document.addEventListener("nav",e=>{let t=e.detail?.url||l();console.log("[ExampleComponent] Navigation to:",t),r()});document.addEventListener("render",()=>{console.log("[ExampleComponent] Render event - re-initializing"),r()});document.addEventListener("prenav",()=>{let e=document.querySelector(".example-component");e&&sessionStorage.setItem("exampleScrollTop",e.scrollTop?.toString()||"0")});\n';
-var l;
-l = { __e: function(n2, l2, u3, t2) {
-  for (var i2, o2, r2; l2 = l2.__; ) if ((i2 = l2.__c) && !i2.__) try {
-    if ((o2 = i2.constructor) && null != o2.getDerivedStateFromError && (i2.setState(o2.getDerivedStateFromError(n2)), r2 = i2.__d), null != i2.componentDidCatch && (i2.componentDidCatch(n2, t2 || {}), r2 = i2.__d), r2) return i2.__E = i2;
-  } catch (l3) {
-    n2 = l3;
-  }
-  throw n2;
-} }, "function" == typeof Promise ? Promise.prototype.then.bind(Promise.resolve()) : setTimeout;
-
-// node_modules/preact/jsx-runtime/dist/jsxRuntime.mjs
-var f2 = 0;
-function u2(e2, t2, n2, o2, i2, u3) {
-  t2 || (t2 = {});
-  var a2, c2, p2 = t2;
-  if ("ref" in p2) for (c2 in p2 = {}, t2) "ref" == c2 ? a2 = t2[c2] : p2[c2] = t2[c2];
-  var l2 = { type: e2, props: p2, key: n2, ref: a2, __k: null, __: null, __b: 0, __e: null, __c: null, constructor: void 0, __v: --f2, __i: -1, __u: 0, __source: i2, __self: u3 };
-  return l.vnode && l.vnode(l2), l2;
-}
-
-// src/components/ExampleComponent.tsx
 var ExampleComponent_default = ((opts) => {
   const { prefix = "", suffix = "", className = "example-component" } = opts ?? {};
   const Component = (props) => {
     const frontmatter = props.fileData?.frontmatter;
     const title = frontmatter?.title ?? "Untitled";
     const fullText = `${prefix}${title}${suffix}`;
-    return /* @__PURE__ */ u2("div", { class: classNames(className), children: fullText });
+    return /* @__PURE__ */ jsx("div", { class: classNames(className), children: fullText });
   };
   Component.css = example_default;
   Component.afterDOMLoaded = example_inline_default;

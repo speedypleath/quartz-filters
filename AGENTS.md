@@ -25,7 +25,7 @@ Plugins are not mutually exclusive. A single plugin can implement multiple types
 
 ## Leave Alone
 
-- `dist/`: Build output. Gitignored. Built on install for git sources, pre-built in npm packages.
+- `dist/`: Build output. Not gitignored — Quartz installs plugins from the pre-built `dist/`, so regenerate it with `npm run build` and commit it rather than editing it by hand.
 - `.github/`: CI/CD workflows. `ci.yml` runs checks, `release.yml` handles Changesets publishing.
 - `.changeset/`: Changesets configuration. Do not modify `config.json`.
 - `tsup.config.ts`: Build configuration. Defines SINGLETON_EXTERNALS and bundling strategy. Only modify to add native dep exclusions.
@@ -73,7 +73,7 @@ The `quartz` field is required for discovery and configuration:
 - **Missing Exports**: Forgetting to export the plugin factory from `src/index.ts`.
 - **Wrong Category**: Not matching the `category` in `package.json` with the implemented hooks.
 - **Peer Dependencies**: Adding `preact` or `vfile` as `dependencies` instead of `peerDependencies`.
-- **Committing dist/**: The `dist/` directory is gitignored. npm packages ship pre-built; git sources build on install.
+- **Stale dist/**: Changing `src/` or dependencies without rebuilding and committing `dist/`. Quartz uses the committed build, so it must match the source.
 - **Bundling native deps**: Plugins using `sharp`, `@napi-rs/*`, or other NAPI packages must exclude them from `noExternal`.
 
 ## Testing Patterns
@@ -85,6 +85,7 @@ Use `vitest`. Mock the `BuildCtx` and `ProcessedContent` when testing transforme
 - [ ] `npm run build` completes without errors.
 - [ ] `npm test` passes all cases.
 - [ ] `npm run build` output is correct (CI builds from source).
+- [ ] Rebuilt `dist/` is committed.
 - [ ] `package.json` manifest is complete and accurate.
 - [ ] `README.md` documents all options.
 

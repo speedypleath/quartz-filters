@@ -201,6 +201,24 @@ describe("mountNoteFilter", () => {
     expect($(".qf-bookmark").getAttribute("aria-current")).toBe("true");
   });
 
+  it("fits the input to a saved filter's text when running it from the Saved tab", async () => {
+    const local = new MemoryStorage();
+    local.setItem(
+      "quartz-filters:bookmarks",
+      JSON.stringify([
+        { name: "Long", query: "topics contains Electronics", caseSensitive: false },
+      ]),
+    );
+    const { input, $ } = setup({ local });
+    // jsdom has no layout: report a height only while the Filter panel is shown, as a browser does.
+    Object.defineProperty(input, "scrollHeight", {
+      get: () => (input.closest<HTMLElement>("[data-panel]")?.hidden ? 0 : 80),
+    });
+    $<HTMLButtonElement>('[data-tab="saved"]').click();
+    $<HTMLButtonElement>(".qf-bookmark").click();
+    expect(input.style.height).toBe("80px");
+  });
+
   it("deletes a bookmark", async () => {
     const { input, $ } = setup();
     type(input, "topic is Books");

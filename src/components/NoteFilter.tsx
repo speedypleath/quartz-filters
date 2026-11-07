@@ -75,10 +75,8 @@ export default ((opts?: NoteFilterOptions) => {
               autocomplete="off"
               aria-label={t.label}
               placeholder={placeholder}
-              role="combobox"
               aria-autocomplete="list"
               aria-controls={`${id}-suggestions`}
-              aria-expanded="false"
             ></textarea>
             <button
               type="button"

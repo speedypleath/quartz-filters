@@ -157,7 +157,6 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
   function renderSuggestions() {
     const items = completion?.items ?? [];
     el.suggestions.hidden = items.length === 0;
-    el.input.setAttribute("aria-expanded", String(items.length > 0));
     el.suggestions.replaceChildren(
       ...items.map((item, index) => {
         const option = doc.createElement("li");
@@ -356,10 +355,11 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
   on(el.input, "input", onTyped);
   on(el.input, "keydown", (event) => {
     const count = completion?.items.length ?? 0;
-    if (event.key === " " && event.ctrlKey) {
-      event.preventDefault();
+    // Ctrl+Space switches input sources on macOS, so the down arrow reopens the list too.
+    if ((event.key === " " && event.ctrlKey) || (event.key === "ArrowDown" && count === 0)) {
       dismissed = false;
       updateSuggestions();
+      if (completion || event.key === " ") event.preventDefault();
       return;
     }
     if (count > 0) {

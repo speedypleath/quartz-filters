@@ -78,7 +78,8 @@ As you type, a list suggests what can go at the cursor, taken from the published
 - After `is`, `is not`, `contains` or a comparison: that field's values, most common first.
 - After `in` or `has`: field names. After `value in`, the fields that hold that value come first.
 
-Use ↑ and ↓ to move, Enter or Tab to insert, and Esc to close the list. Ctrl+Space opens it again.
+Use ↑ and ↓ to move, Enter or Tab to insert, and Esc to close the list. ↓ or Ctrl+Space opens it
+again.
 Values are quoted for you when they need it.
 
 ### How values match

@@ -319,7 +319,7 @@ describe("mountNoteFilter", () => {
       const { input, list, options } = await ready();
       typeAtEnd(input, "to");
       expect(list.hidden).toBe(false);
-      expect(input.getAttribute("aria-expanded")).toBe("true");
+      expect(input.getAttribute("aria-controls")).toBe(list.id);
       expect(options().map((o) => o.textContent)).toEqual(["topicfield"]);
 
       typeAtEnd(input, "topic is ");
@@ -369,13 +369,21 @@ describe("mountNoteFilter", () => {
       typeAtEnd(input, "to");
       key(input, "Escape");
       expect(list.hidden).toBe(true);
-      expect(input.getAttribute("aria-expanded")).toBe("false");
+      expect(input.hasAttribute("aria-activedescendant")).toBe(false);
       expect(key(input, "Enter").defaultPrevented).toBe(true);
       expect(input.value).toBe("to");
 
       key(input, " ", { ctrlKey: true });
       expect(list.hidden).toBe(false);
       typeAtEnd(input, "top");
+      expect(list.hidden).toBe(false);
+    });
+
+    it("reopens with the down arrow after Escape", async () => {
+      const { input, list } = await ready();
+      typeAtEnd(input, "to");
+      key(input, "Escape");
+      expect(key(input, "ArrowDown").defaultPrevented).toBe(true);
       expect(list.hidden).toBe(false);
     });
 

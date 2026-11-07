@@ -3900,6 +3900,7 @@ Expected: both exit 0.
 
 - If lint flags `panel.ts` for `no-restricted-syntax`, check that the file still contains the literal `window.addCleanup(cleanup)` call.
 - After the build, `grep -c "qf-bookmark" dist/components/index.js` prints a number greater than 0. That proves the inline script was bundled as a string.
+- `grep -c 'from"@quartz-community\|from "@quartz-community' dist/components/index.js` must print `0`. The inline script runs in the browser, so `resolveBasePath` has to be bundled into the string, not left as a bare import. If the count is not 0, copy `resolveBasePath` into `note-filter/selectors.ts` as a small local helper that reads `document.body.dataset.basepath`.
 
 - [ ] **Step 7: Commit**
 
@@ -4129,10 +4130,11 @@ Expected output: `dist/ externals verified: all imports are bundled or allowlist
 This is a manual step; skip it if no Quartz 5 site is at hand.
 
 1. Point a Quartz 5 site at this checkout. In the site, run `npx quartz plugin add /Users/speedypleath/Projects/quartz-filters` or the site's local-path equivalent.
-2. Build and serve the site. Confirm that typing `has tags` narrows the Explorer.
-3. Confirm that **Aa** changes the results for a mixed-case value.
-4. Confirm that a saved filter survives a page reload.
-5. Confirm that navigating between notes keeps the filter.
+2. Build the site. Confirm that `public/static/quartz-filters/index.json` exists, which proves Quartz ran the `FrontmatterIndex` emitter from a plugin that has both the emitter and component categories. If it's missing, check how Quartz's plugin loader maps `category` to exports before changing anything else.
+3. Serve the site. Confirm that typing `has tags` narrows the Explorer.
+4. Confirm that **Aa** changes the results for a mixed-case value.
+5. Confirm that a saved filter survives a page reload.
+6. Confirm that navigating between notes keeps the filter.
 
 Report anything that differs. Don't change the selectors without evidence from the Explorer's real markup.
 

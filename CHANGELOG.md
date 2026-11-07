@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+### Patch Changes
+
+- 3dac433: The README now installs the plugin from npm (`npm install @speedypleath/quartz-filters`), with GitHub as the alternative.
+- de1006b: Properties that hold Obsidian links, such as `topics: ["[[Programming]]"]`, are now indexed as the text Obsidian shows (`Programming`), so `Programming in topics` matches. A link with an alias (`[[Electronics|Hardware]]`) is indexed as its alias.
+
 ## 0.2.0
 
 ### Minor Changes

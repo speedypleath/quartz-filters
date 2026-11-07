@@ -1,6 +1,6 @@
 {
   "name": "@speedypleath/quartz-filters",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Quartz filter plugins for choosing which notes get published to your site.",
   "type": "module",
   "license": "MIT",

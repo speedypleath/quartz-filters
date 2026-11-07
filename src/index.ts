@@ -1,3 +1,6 @@
+export { FrontmatterIndex } from "./emitter";
+export type { FrontmatterIndexOptions } from "./emitter";
+
 // Re-export shared types from @quartz-community/types
 export type {
   QuartzComponent,

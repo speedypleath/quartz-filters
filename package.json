@@ -14,10 +14,9 @@
     "quartz",
     "quartz-plugin",
     "quartz-filters",
-    "remark",
-    "rehype",
-    "mdast",
-    "hast"
+    "filter",
+    "frontmatter",
+    "explorer"
   ],
   "files": [
     "dist",
@@ -100,28 +99,32 @@
   "quartz": {
     "name": "quartz-filters",
     "displayName": "Quartz Filters",
-    "category": "transformer",
+    "category": [
+      "emitter",
+      "component"
+    ],
     "version": "1.0.0",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultOrder": 50,
     "defaultEnabled": true,
-    "defaultOptions": {},
+    "defaultOptions": {
+      "excludeFields": [],
+      "caseSensitive": false
+    },
     "optionSchema": {
-      "highlightToken": {
-        "type": "enum",
-        "values": [
-          "==",
-          "**",
-          "~~"
-        ]
+      "placeholder": {
+        "type": "string"
+      },
+      "caseSensitive": {
+        "type": "boolean"
       }
     },
     "components": {
-      "ExampleComponent": {
-        "displayName": "Example Component",
-        "defaultPosition": "right",
-        "defaultPriority": 50
+      "NoteFilter": {
+        "displayName": "Note Filter",
+        "defaultPosition": "left",
+        "defaultPriority": 40
       }
     }
   },

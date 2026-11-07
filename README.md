@@ -38,14 +38,14 @@ The template is configured to bundle all dependencies by default via `noExternal
 Install your plugin into a Quartz v5 site:
 
 ```bash
-npx quartz plugin add github:quartz-community/plugin-template
+npx quartz plugin add github:speedypleath/quartz-filters
 ```
 
 Then register it in `quartz.config.yaml`:
 
 ```yaml
 plugins:
-  - source: github:quartz-community/plugin-template
+  - source: github:speedypleath/quartz-filters
     enabled: true
     options:
       highlightToken: "=="
@@ -94,7 +94,7 @@ export const MyTransformer: QuartzTransformerPlugin<{ enabled: boolean }> = (opt
 - perform a text transform hook
 
 ```ts
-import { ExampleTransformer } from "@quartz-community/plugin-template";
+import { ExampleTransformer } from "@speedypleath/quartz-filters";
 
 ExampleTransformer({
   highlightToken: "==",

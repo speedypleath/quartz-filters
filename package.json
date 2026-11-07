@@ -1,19 +1,19 @@
 {
-  "name": "@quartz-community/plugin-template",
+  "name": "@speedypleath/quartz-filters",
   "version": "0.1.0",
-  "description": "Template repository for Quartz community plugins.",
+  "description": "Quartz filter plugins for choosing which notes get published to your site.",
   "type": "module",
   "license": "MIT",
-  "author": "Quartz Community",
-  "homepage": "https://quartz.jzhao.xyz",
+  "author": "Andrei Gheorghe",
+  "homepage": "https://speedypleath.github.io/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/quartz-community/plugin-template"
+    "url": "https://github.com/speedypleath/quartz-filters"
   },
   "keywords": [
     "quartz",
     "quartz-plugin",
-    "plugin-template",
+    "quartz-filters",
     "remark",
     "rehype",
     "mdast",
@@ -97,8 +97,8 @@
     "vitest": "^2.1.9"
   },
   "quartz": {
-    "name": "plugin-template",
-    "displayName": "Plugin Template",
+    "name": "quartz-filters",
+    "displayName": "Quartz Filters",
     "category": "transformer",
     "version": "1.0.0",
     "quartzVersion": ">=5.0.0",

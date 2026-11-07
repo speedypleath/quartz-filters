@@ -1,0 +1,369 @@
+// Uses only Quartz theme variables, so the panel follows the site's theme and dark mode.
+// The overlay and the textarea must keep the same font, size and padding, or the caret
+// drifts away from the highlighted text.
+
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--secondary);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+}
+
+.note-filter {
+  margin: 0.5rem 0 1.25rem;
+  font-family: var(--bodyFont);
+  color: var(--darkgray);
+
+  .qf-tabs {
+    display: flex;
+    gap: 1.1rem;
+    border-bottom: 1px solid var(--lightgray);
+    margin-bottom: 0.75rem;
+  }
+
+  .qf-tab {
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 0 0 0.4rem;
+    cursor: pointer;
+    font-family: var(--headerFont);
+    font-size: 1rem;
+    color: var(--gray);
+    @include focus-ring;
+
+    &[aria-selected="true"] {
+      color: var(--dark);
+      font-weight: 700;
+      border-bottom-color: var(--secondary);
+    }
+  }
+
+  .qf-count {
+    font-family: var(--bodyFont);
+    font-weight: 400;
+    color: var(--gray);
+  }
+
+  .qf-query {
+    position: relative;
+  }
+
+  .qf-highlight,
+  .qf-input {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem 2.6rem 0.5rem 0.65rem;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    font-family: var(--codeFont);
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.55;
+    letter-spacing: normal;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .qf-highlight {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    color: var(--dark);
+    background: none;
+  }
+
+  .qf-input {
+    position: relative;
+    display: block;
+    resize: none;
+    overflow: hidden;
+    color: transparent;
+    caret-color: var(--dark);
+    background: transparent;
+    border-color: var(--lightgray);
+
+    &::placeholder {
+      color: var(--gray);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 2px var(--highlight);
+    }
+  }
+
+  .qf-field {
+    color: var(--secondary);
+  }
+
+  .qf-keyword,
+  .qf-op,
+  .qf-paren {
+    color: var(--gray);
+  }
+
+  .qf-value {
+    color: color-mix(in srgb, var(--tertiary) 70%, var(--dark));
+  }
+
+  .qf-invalid {
+    text-decoration: underline wavy;
+    text-decoration-color: var(--secondary);
+  }
+
+  .qf-case {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    padding: 0.1rem 0.35rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    font-family: var(--codeFont);
+    font-size: 0.75rem;
+    color: var(--gray);
+    @include focus-ring;
+
+    &[aria-pressed="true"] {
+      color: var(--secondary);
+      background: var(--highlight);
+      border-color: var(--secondary);
+    }
+  }
+
+  .qf-error {
+    margin: 0.4rem 0 0;
+    font-size: 0.8rem;
+    color: var(--dark);
+  }
+
+  .qf-clauses {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    font-family: var(--codeFont);
+    font-size: 0.8rem;
+    color: var(--dark);
+
+    li {
+      margin: 0;
+    }
+  }
+
+  .qf-clause {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.15rem 0 0.15rem 0.55rem;
+    border-left: 2px solid var(--tertiary);
+    overflow-wrap: anywhere;
+  }
+
+  .qf-join {
+    padding: 0.05rem 0 0.05rem 0.55rem;
+    border-left: 2px solid var(--lightgray);
+    font-size: 0.72rem;
+    color: var(--gray);
+  }
+
+  .qf-clause-remove,
+  .qf-bookmark-remove {
+    flex: none;
+    background: none;
+    border: 0;
+    padding: 0 0.2rem;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--gray);
+    @include focus-ring;
+
+    &:hover {
+      color: var(--dark);
+    }
+  }
+
+  .qf-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .qf-actions,
+  .qf-form-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .qf-form-actions {
+    justify-content: flex-end;
+  }
+
+  .qf-link {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    color: var(--secondary);
+    @include focus-ring;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      color: var(--gray);
+      cursor: default;
+      text-decoration: none;
+    }
+  }
+
+  .qf-save-form {
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+    font-size: 0.85rem;
+
+    &[hidden] {
+      display: none;
+    }
+
+    label {
+      display: grid;
+      gap: 0.2rem;
+    }
+
+    input {
+      font: inherit;
+      padding: 0.3rem 0.5rem;
+      border: 1px solid var(--lightgray);
+      border-radius: 4px;
+      background: var(--light);
+      color: var(--dark);
+
+      &:focus {
+        outline: none;
+        border-color: var(--secondary);
+      }
+    }
+  }
+
+  .qf-replace {
+    margin: 0;
+    color: var(--dark);
+  }
+
+  .qf-note {
+    margin: 0.25rem 0;
+    font-size: 0.85rem;
+  }
+
+  .qf-bookmarks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin: 0;
+      border-bottom: 1px solid var(--lightgray);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+  }
+
+  .qf-bookmark {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0 0.45rem 0.5rem;
+    border: 0;
+    border-left: 2px solid transparent;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    @include focus-ring;
+
+    &[aria-current="true"] {
+      border-left-color: var(--secondary);
+
+      .qf-bookmark-name {
+        color: var(--secondary);
+      }
+    }
+  }
+
+  .qf-bookmark-name {
+    display: block;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--dark);
+  }
+
+  .qf-bookmark-query {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--codeFont);
+    font-size: 0.72rem;
+    color: var(--gray);
+  }
+}
+
+// Explorer integration (classes and attributes set by explorer-sync.ts)
+.explorer {
+  .qf-hidden {
+    display: none !important;
+  }
+
+  .title-button h2[data-qf-filtered]::after {
+    content: attr(data-qf-filtered);
+    margin-left: 0.5rem;
+    font-family: var(--bodyFont);
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--secondary);
+  }
+
+  .qf-empty {
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+    color: var(--darkgray);
+
+    button {
+      background: none;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      font: inherit;
+      color: var(--secondary);
+
+      &:hover {
+        text-decoration: underline;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--secondary);
+        outline-offset: 2px;
+      }
+    }
+  }
+}

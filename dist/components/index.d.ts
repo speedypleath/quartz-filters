@@ -1,10 +1,11 @@
 import { QuartzComponent } from '@quartz-community/types';
 
-interface ExampleComponentOptions {
-    prefix?: string;
-    suffix?: string;
-    className?: string;
+interface NoteFilterOptions {
+    /** Example query shown in the empty input. */
+    placeholder?: string;
+    /** Whether "Match case" starts switched on. Readers can still flip it. */
+    caseSensitive?: boolean;
 }
-declare const _default: (opts?: ExampleComponentOptions) => QuartzComponent;
+declare const _default: (opts?: NoteFilterOptions) => QuartzComponent;
 
-export { _default as ExampleComponent, type ExampleComponentOptions };
+export { _default as NoteFilter, type NoteFilterOptions };

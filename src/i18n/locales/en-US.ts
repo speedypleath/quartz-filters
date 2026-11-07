@@ -1,7 +1,29 @@
 export default {
   components: {
-    example: {
-      title: "Example",
+    noteFilter: {
+      label: "Filter notes",
+      tabFilter: "Filter",
+      tabSaved: "Saved",
+      matchCase: "Match case",
+      removeClause: "Remove clause",
+      save: "Save",
+      clear: "Clear",
+      cancel: "Cancel",
+      replace: "Replace",
+      nameLabel: "Name",
+      replacePrompt: 'Replace the saved filter "{name}"?',
+      deleteBookmark: 'Delete "{name}"',
+      errorAt: "{message} (column {column})",
+      loading: "Loading notes…",
+      loadFailed: "Couldn't load filter data.",
+      matched: "{matched} of {total} notes",
+      total: "{total} notes",
+      noExplorer: "Add the Explorer plugin to filter notes.",
+      noMatches: "No notes match this filter.",
+      clearFilter: "Clear filter",
+      filtered: "Filtered",
+      savedEmpty: "Save a filter to run it again later.",
+      savingOff: "Saving is off in this browser.",
     },
   },
 };

@@ -1,21 +1,14 @@
-import { QuartzTransformerPlugin, QuartzFilterPlugin, QuartzEmitterPlugin } from '@quartz-community/types';
+import { QuartzEmitterPlugin } from '@quartz-community/types';
 export { PageGenerator, PageMatcher, QuartzComponent, QuartzComponentConstructor, QuartzComponentProps, QuartzEmitterPlugin, QuartzFilterPlugin, QuartzPageTypePlugin, QuartzPageTypePluginInstance, QuartzTransformerPlugin, StringResource, VirtualPage } from '@quartz-community/types';
-import { ExampleTransformerOptions, ExampleFilterOptions, ExampleEmitterOptions } from './types.js';
-export { ExampleComponent, ExampleComponentOptions } from './components/index.js';
+export { NoteFilter, NoteFilterOptions } from './components/index.js';
 
-/**
- * Example transformer showing remark/rehype usage and resource injection.
- */
-declare const ExampleTransformer: QuartzTransformerPlugin<Partial<ExampleTransformerOptions>>;
+interface FrontmatterIndexOptions {
+    /** Frontmatter keys to leave out of the public index. Matched regardless of case. */
+    excludeFields: string[];
+    /** When set, only these keys are indexed. `title` and `path` are always included. */
+    fields?: string[];
+}
+/** Writes every published note's frontmatter to `static/quartz-filters/index.json`. */
+declare const FrontmatterIndex: QuartzEmitterPlugin<Partial<FrontmatterIndexOptions>>;
 
-/**
- * Example filter that removes drafts, tagged pages, and excluded path prefixes.
- */
-declare const ExampleFilter: QuartzFilterPlugin<Partial<ExampleFilterOptions>>;
-
-/**
- * Example emitter that writes a JSON manifest of content metadata.
- */
-declare const ExampleEmitter: QuartzEmitterPlugin<Partial<ExampleEmitterOptions>>;
-
-export { ExampleEmitter, ExampleEmitterOptions, ExampleFilter, ExampleFilterOptions, ExampleTransformer, ExampleTransformerOptions };
+export { FrontmatterIndex, type FrontmatterIndexOptions };

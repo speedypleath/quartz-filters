@@ -1,91 +1,92 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import type {
-  QuartzEmitterPlugin,
-  ProcessedContent,
   BuildCtx,
   FilePath,
-  FullSlug,
+  ProcessedContent,
+  QuartzEmitterPlugin,
 } from "@quartz-community/types";
-import type { ExampleEmitterOptions } from "./types";
+import { INDEX_FILE, type FrontmatterIndexFile, type IndexedNote } from "./index-format";
+import type { FieldValue, NoteFields, Scalar } from "./query/types";
 
-const defaultOptions: ExampleEmitterOptions = {
-  manifestSlug: "plugin-manifest",
-  includeFrontmatter: true,
-  metadata: {
-    generator: "Quartz Plugin Template",
-  },
-};
+export interface FrontmatterIndexOptions {
+  /** Frontmatter keys to leave out of the public index. Matched regardless of case. */
+  excludeFields: string[];
+  /** When set, only these keys are indexed. `title` and `path` are always included. */
+  fields?: string[];
+}
 
-const joinSegments = (...segments: string[]) =>
-  segments
-    .filter((segment) => segment.length > 0)
-    .join("/")
-    .replace(/\/+/g, "/") as FilePath;
+const defaultOptions: FrontmatterIndexOptions = { excludeFields: [] };
+const BUILT_IN = new Set(["title", "path"]);
 
-const writeFile = async (
-  outputDir: string,
-  slug: FullSlug,
-  ext: `.${string}` | "",
-  content: string,
+function normalizeScalar(value: unknown): Scalar | undefined {
+  if (typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? undefined : value.toISOString();
+  return undefined;
+}
+
+/** Keeps strings, numbers, booleans and dates (as ISO strings). Arrays keep only those. */
+export function normalizeValue(value: unknown): FieldValue | undefined {
+  if (Array.isArray(value)) {
+    return value.map(normalizeScalar).filter((v): v is Scalar => v !== undefined);
+  }
+  return normalizeScalar(value);
+}
+
+export function indexNote(
+  slug: string,
+  frontmatter: Record<string, unknown>,
+  options: FrontmatterIndexOptions,
+): IndexedNote {
+  const excluded = new Set(options.excludeFields.map((f) => f.toLowerCase()));
+  const allowed = options.fields ? new Set(options.fields.map((f) => f.toLowerCase())) : null;
+  const fields: NoteFields = {};
+
+  for (const [key, raw] of Object.entries(frontmatter)) {
+    const lower = key.toLowerCase();
+    if (BUILT_IN.has(lower) || excluded.has(lower)) continue;
+    if (allowed && !allowed.has(lower)) continue;
+    const value = normalizeValue(raw);
+    if (value !== undefined) fields[key] = value;
+  }
+
+  const title =
+    typeof frontmatter.title === "string" && frontmatter.title.length > 0
+      ? frontmatter.title
+      : slug;
+  fields.title = title;
+  fields.path = slug;
+  return { path: slug, title, fields };
+}
+
+/** Writes every published note's frontmatter to `static/quartz-filters/index.json`. */
+export const FrontmatterIndex: QuartzEmitterPlugin<Partial<FrontmatterIndexOptions>> = (
+  userOptions?: Partial<FrontmatterIndexOptions>,
 ) => {
-  const outputPath = joinSegments(outputDir, `${slug}${ext}`) as FilePath;
-  await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  await fs.writeFile(outputPath, content);
-  return outputPath;
-};
+  const options: FrontmatterIndexOptions = { ...defaultOptions, ...userOptions };
 
-/**
- * Example emitter that writes a JSON manifest of content metadata.
- */
-export const ExampleEmitter: QuartzEmitterPlugin<Partial<ExampleEmitterOptions>> = (
-  userOptions?: Partial<ExampleEmitterOptions>,
-) => {
-  const options = { ...defaultOptions, ...userOptions };
-  const emitManifest = async (ctx: BuildCtx, content: ProcessedContent[]) => {
-    const manifest = {
-      ...options.metadata,
-      generatedAt: new Date().toISOString(),
-      pages: content.map(([_tree, vfile]) => {
-        const frontmatter = (vfile.data?.frontmatter ?? {}) as {
-          title?: string;
-          tags?: string[];
-          [key: string]: unknown;
-        };
-        return {
-          slug: vfile.data?.slug ?? null,
-          title: frontmatter.title ?? null,
-          tags: frontmatter.tags ?? null,
-          filePath: vfile.data?.filePath ?? null,
-          frontmatter: options.includeFrontmatter ? frontmatter : undefined,
-        };
-      }),
-    };
-
-    let json = `${JSON.stringify(manifest, null, 2)}\n`;
-    if (options.transformManifest) {
-      json = options.transformManifest(json);
-    }
-
-    const output = await writeFile(
-      ctx.argv.output,
-      options.manifestSlug as FullSlug,
-      ".json",
-      json,
-    );
-    return [output];
+  const emitIndex = async (ctx: BuildCtx, content: ProcessedContent[]): Promise<FilePath[]> => {
+    const notes = content.flatMap(([, vfile]) => {
+      const slug = vfile.data?.slug;
+      if (typeof slug !== "string") return [];
+      const frontmatter = (vfile.data?.frontmatter ?? {}) as Record<string, unknown>;
+      return [indexNote(slug, frontmatter, options)];
+    });
+    const file: FrontmatterIndexFile = { version: 1, notes };
+    const outputPath = path.join(ctx.argv.output, INDEX_FILE);
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    await fs.writeFile(outputPath, JSON.stringify(file));
+    return [outputPath as FilePath];
   };
 
   return {
-    name: "ExampleEmitter",
-    async emit(ctx, content, _resources) {
-      return emitManifest(ctx, content);
+    name: "FrontmatterIndex",
+    async emit(ctx, content) {
+      return emitIndex(ctx, content);
     },
-    async *partialEmit(ctx, content, _resources, _changeEvents) {
-      const outputPaths = await emitManifest(ctx, content);
-      for (const outputPath of outputPaths) {
-        yield outputPath;
-      }
+    async *partialEmit(ctx, content) {
+      yield* await emitIndex(ctx, content);
     },
   };
 };

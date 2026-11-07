@@ -1,15 +1,7 @@
-export { ExampleTransformer } from "./transformer";
-export { ExampleFilter } from "./filter";
-export { ExampleEmitter } from "./emitter";
-export { default as ExampleComponent } from "./components/ExampleComponent";
-
-export type {
-  ExampleTransformerOptions,
-  ExampleFilterOptions,
-  ExampleEmitterOptions,
-} from "./types";
-
-export type { ExampleComponentOptions } from "./components/ExampleComponent";
+export { FrontmatterIndex } from "./emitter";
+export type { FrontmatterIndexOptions } from "./emitter";
+export { default as NoteFilter } from "./components/NoteFilter";
+export type { NoteFilterOptions } from "./components/NoteFilter";
 
 // Re-export shared types from @quartz-community/types
 export type {

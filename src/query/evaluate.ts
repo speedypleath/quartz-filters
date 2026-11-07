@@ -51,16 +51,19 @@ function matchClause(clause: Clause, fields: NoteFields, caseSensitive: boolean)
   }
 }
 
-const isDate = (s: string) => ISO_DATE.test(s) && !Number.isNaN(Date.parse(s));
-const day = (s: string) => new Date(Date.parse(s)).toISOString().slice(0, 10);
+/** Parses an ISO date or datetime as UTC when it carries no zone, so results never depend on the
+ * reader's timezone. Obsidian writes datetimes without a zone (`2026-01-01T10:30`). */
+const toInstant = (s: string) => Date.parse(/T[\d:.]+$/.test(s) ? `${s}Z` : s);
+const isDate = (s: string) => ISO_DATE.test(s) && !Number.isNaN(toInstant(s));
 
-/** Negative, zero or positive. A date-only literal compares on the field's UTC calendar day. */
+/** Negative, zero or positive. A date-only literal compares on the calendar day the field was
+ * written with (its first ten characters). */
 function compareDates(field: string, literal: string): number {
   if (literal.length === 10) {
-    const fieldDay = day(field);
+    const fieldDay = field.slice(0, 10);
     return fieldDay < literal ? -1 : fieldDay > literal ? 1 : 0;
   }
-  return Math.sign(Date.parse(field) - Date.parse(literal));
+  return Math.sign(toInstant(field) - toInstant(literal));
 }
 
 const sameText = (a: string, b: string, caseSensitive: boolean) =>

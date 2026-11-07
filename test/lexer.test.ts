@@ -46,6 +46,10 @@ describe("tokenize", () => {
     expect(kinds("topic is “Electronics”")[2]).toEqual(["string", "Electronics"]);
   });
 
+  it("allows slashes in unquoted values so paths need no quotes", () => {
+    expect(kinds("path is electronics/h-bridge")[2]).toEqual(["word", "electronics/h-bridge"]);
+  });
+
   it("reads non-ASCII words", () => {
     expect(kinds("tópico is Électronique")).toEqual([
       ["word", "tópico"],

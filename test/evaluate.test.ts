@@ -85,6 +85,18 @@ describe("matches", () => {
     });
   });
 
+  // Obsidian writes datetimes without a zone; they must not shift with the reader's timezone.
+  // Run this file under several TZ values (see the fix-pass commands).
+  it.each([
+    ["created is 2026-01-01", "2026-01-01T01:30", true],
+    ["created is 2026-01-01", "2026-01-01T23:30", true],
+    ["created >= 2026-01-02", "2026-01-01T23:30:00", false],
+    ["created > 2026-01-01T10:00", "2026-01-01T10:30", true],
+    ["created < 2026-01-01T10:00", "2026-01-01T10:30", false],
+  ])("compares zoneless datetimes as written: %s against %s → %s", (query, created, expected) => {
+    expect(run(query, false, { created })).toBe(expected);
+  });
+
   it("matches either key when keys differ only in case and the toggle is off", () => {
     const fields: NoteFields = { Status: "draft", status: "done" };
     expect(run("status is done", false, fields)).toBe(true);

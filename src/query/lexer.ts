@@ -2,7 +2,7 @@ import type { ParseError, Token } from "./types";
 
 export const KEYWORDS = new Set(["is", "not", "in", "and", "or", "has", "exists", "contains"]);
 
-const WORD_CHAR = /[\p{L}\p{N}_.:-]/u;
+const WORD_CHAR = /[\p{L}\p{N}_.:/-]/u;
 const DATE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z)?)?$/;
 const NUMBER = /^-?\d+(\.\d+)?$/;
 const OPEN_QUOTES = new Set(['"', "“"]);

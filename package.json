@@ -1,7 +1,7 @@
 {
   "name": "@speedypleath/quartz-filters",
   "version": "0.1.1",
-  "description": "Quartz filter plugins for choosing which notes get published to your site.",
+  "description": "Filter the Quartz Explorer by frontmatter with plain-words queries, and save filters as bookmarks.",
   "type": "module",
   "license": "MIT",
   "author": "Andrei Gheorghe",

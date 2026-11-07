@@ -55,7 +55,12 @@ export function removeClause(query: string, clause: Clause): string {
   let to = tokens[last]?.end ?? clause.end;
   const after = tokens[last + 1];
   const before = tokens[first - 1];
-  if (isConnective(after)) {
+  // With connectives on both sides, drop the `and`: the clause belongs to that tighter group, so
+  // removing `b` from `a and b or c` must leave `a or c`.
+  const dropBefore =
+    isConnective(before) &&
+    (!isConnective(after) || (before.value === "and" && after.value === "or"));
+  if (!dropBefore && isConnective(after)) {
     to = tokens[last + 2]?.start ?? after.end;
   } else if (isConnective(before)) {
     from = tokens[first - 2]?.end ?? before.start;

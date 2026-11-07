@@ -34,7 +34,8 @@ describe("removeClause", () => {
   it.each([
     ["a is 1 and b is 2", 0, "b is 2"],
     ["a is 1 and b is 2", 1, "a is 1"],
-    ["a is 1 and b is 2 or c is 3", 1, "a is 1 and c is 3"],
+    ["a is 1 and b is 2 or c is 3", 1, "a is 1 or c is 3"],
+    ["a is 1 or b is 2 and c is 3", 1, "a is 1 or c is 3"],
     ["not a is 1 and b is 2", 0, "b is 2"],
     ["(a is 1) and b is 2", 0, "b is 2"],
     ["a is 1 and not (b is 2)", 1, "a is 1"],

@@ -27,9 +27,14 @@ plugins:
     enabled: true
     options:
       excludeFields: [email, private-notes]
+    layout:
+      position: left
+      priority: 40
 ```
 
-The Note Filter panel goes on the left by default, above the Explorer.
+`npx quartz plugin add` writes the `layout` block for you. If you edit the entry by hand, keep it:
+without `layout`, Quartz still builds the index but doesn't place the panel. Priority 40 puts the
+panel above the Explorer (50).
 
 > [!warning]
 > Every frontmatter field of every published note is written to a public file,
@@ -56,8 +61,9 @@ The Note Filter panel goes on the left by default, above the Explorer.
 - **Values:**
   - Values can be `"quoted text"`, numbers, dates (`2026-01-01`, or `2026-01-01T10:30`) or
     `true`/`false`.
-  - A single word doesn't need quotes. Quote a value if it has spaces or other punctuation, or if
-    it is a keyword (`is`, `not`, `in`, `and`, `or`, `has`, `exists`, `contains`).
+  - A single word doesn't need quotes, and neither does a path such as `electronics/h-bridge`.
+    Quote a value if it has spaces or other punctuation, or if it is a keyword (`is`, `not`, `in`,
+    `and`, `or`, `has`, `exists`, `contains`).
 - **Fields:** any frontmatter key works. `title` and `path` (the note's slug) are always available.
 
 ### How values match

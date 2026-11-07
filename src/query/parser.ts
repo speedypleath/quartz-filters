@@ -20,7 +20,7 @@ export function parse(input: string): ParseResult {
 
   const peek = (offset = 0): Token | undefined => tokens[pos + offset];
   const describe = (t: Token) => `"${input.slice(t.start, t.end)}"`;
-  const isKeyword = (t: Token | undefined, word: string): t is Token =>
+  const isKeyword = (t: Token | undefined, word: string): t is Token & { type: "keyword" } =>
     t?.type === "keyword" && t.value === word;
   const isLiteral = (t: Token | undefined): t is Token =>
     t !== undefined && LITERAL_TYPES.has(t.type);

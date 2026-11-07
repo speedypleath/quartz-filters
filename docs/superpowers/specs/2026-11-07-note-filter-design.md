@@ -71,7 +71,8 @@ first term.
   quoted if it contains spaces or is a keyword. The keywords are `is`, `not`, `in`, `and`, `or`,
   `has`, `exists`, `contains`, `true` and `false`.
 - **Identifiers** start with a letter or `_`. After that they may contain letters, digits, `_`, `-`
-  and `.`. Field names are matched case-insensitively against frontmatter keys.
+  and `.`. Whether field names must match frontmatter keys exactly depends on the case toggle (see
+  [Case sensitivity](#case-sensitivity)).
 
 ### Built-in fields
 
@@ -84,13 +85,13 @@ first term.
 - **Equality** (`is`, `in`):
   - If both sides are numbers, they are compared as numbers.
   - If both sides are dates, they are compared as instants.
-  - Otherwise both sides are compared as strings, ignoring case.
+  - Otherwise both sides are compared as strings, following the case toggle.
 - **Array fields:**
   - `field is v` is true if any element equals `v`. This makes `tags is seedling` the same as
     `seedling in tags`.
   - On a scalar field, `v in field` is simply equality.
-- **`contains`** checks for a substring, ignoring case. On an array field it is true if any element
-  contains the value.
+- **`contains`** checks for a substring, following the case toggle. On an array field it is true if
+  any element contains the value.
 - **Ordering** (`< > <= >=`):
   - It only applies when both sides are numbers, or both sides are dates.
   - On an array field it is true if any element satisfies it.
@@ -101,6 +102,22 @@ first term.
     field. This means `status is not done` includes notes that have no status.
 - **`has` / `exists`** are true when the field is present and is not `null`, an empty string or an
   empty array.
+
+### Case sensitivity
+
+Readers switch case sensitivity with an **Aa** toggle next to the query. It is off by default.
+
+- **Off:** string values (`is`, `in`, `contains`) and field names both match regardless of case.
+  `Topic is electronics` matches `topic: Electronics`.
+- **On:** string values and field names must match exactly. `topic is Electronics` doesn't match
+  `topic: electronics`, and `Topic` doesn't match the key `topic`.
+- **Never affected:**
+  - Keywords (`and`, `IS`, `Not In`) are always case-insensitive.
+  - Numbers, dates and booleans compare the same either way.
+- **Duplicate keys:** if the toggle is off and a note has two keys that differ only in case, such as
+  `Status` and `status`, the field matches if either key matches.
+- **Default:** the site author can change the starting state with the component option
+  `caseSensitive`. Readers can still flip it.
 
 ### Errors
 
@@ -119,7 +136,9 @@ directly.
 
 - `lexer.ts`: `tokenize(input: string): Token[]`. Every token records its column.
 - `parser.ts`: `parse(input: string): { ast: Expr | null; error: ParseError | null; clauses: Clause[] }`.
-- `evaluate.ts`: `matches(ast: Expr, fields: NoteFields): boolean`.
+- `evaluate.ts`: `matches(ast: Expr, fields: NoteFields, opts: { caseSensitive: boolean }): boolean`.
+  Parsing doesn't depend on case sensitivity. Only evaluation reads `caseSensitive`, so flipping the
+  toggle re-evaluates the query without parsing it again.
 - `format.ts`: `formatClause(clause): string`, which writes a clause back out in canonical text for
   the clause list.
 - `types.ts`: the types `Token`, `Expr`, `Clause`, `ParseError` and `NoteFields`.
@@ -159,6 +178,9 @@ Preact markup rendered on the server:
 - **Filter panel:**
   - The query input, a textarea that starts one line tall and grows. A syntax-highlight overlay sits behind it,
     so the caret and selection stay native.
+  - The **Aa** case toggle, a `<button aria-pressed>` labelled "Match case". It sits at the right
+    edge of the input. When it is on, it uses `--secondary` and looks pressed. When it is off, it
+    uses `--gray`.
   - The clause list.
   - A status line showing "N of M notes", a **Save** button and a **Clear** button.
   - An error line.
@@ -167,6 +189,7 @@ Preact markup rendered on the server:
 - Options:
   - `placeholder` (default `topic is "Electronics"`).
   - `indexPath` (default `static/quartz-filters/index.json`).
+  - `caseSensitive` (default `false`), which sets where the toggle starts.
 - Styles are in `src/components/styles/note-filter.scss`. They only use Quartz theme variables
   (`--light`, `--lightgray`, `--gray`, `--darkgray`, `--dark`, `--secondary`, `--tertiary`,
   `--highlight`, `--headerFont`, `--bodyFont`, `--codeFont`), so the panel follows the site's
@@ -195,11 +218,13 @@ It is split into small modules that are bundled together:
   - Handles tab switching (arrow keys and Home/End, following the WAI-ARIA tabs pattern).
   - Re-runs the query on input, debounced at 150 ms, and re-renders the syntax highlight, clause list,
     status line and error.
+  - Flipping the case toggle re-evaluates the query immediately, without the debounce.
   - The × on a clause removes that clause's text span from the query. The parser records a span for
     each clause, and the connective next to it is removed too.
 - **`bookmarks`**
-  - Bookmarks are stored as `[{ name, query }]` under the localStorage key
-    `quartz-filters:bookmarks`.
+  - Bookmarks are stored as `[{ name, query, caseSensitive }]` under the localStorage key
+    `quartz-filters:bookmarks`. Loading a bookmark restores its case setting as well. A stored
+    bookmark without `caseSensitive` loads with the toggle off.
   - **Save** asks for a name, using an inline input rather than `prompt()`. It suggests the query
     text as the name. If the name is already used, it asks before replacing.
   - Clicking a bookmark loads its query and switches to the Filter tab. The loaded bookmark is
@@ -224,8 +249,8 @@ It is split into small modules that are bundled together:
   - If nothing matches, it shows the Explorer-level note "No notes match this filter.", with a
     **Clear filter** link inside `.explorer-content`.
 - **Lifecycle**
-  - On `nav`, the script binds to the new DOM and restores the query from sessionStorage
-    (`quartz-filters:query`), so the filter survives navigation within the site.
+  - On `nav`, the script binds to the new DOM and restores `{ query, caseSensitive }` from
+    sessionStorage (`quartz-filters:query`), so the filter survives navigation within the site.
   - It registers every listener and observer with `window.addCleanup`.
 
 ## Package changes
@@ -264,7 +289,9 @@ All tests use Vitest. The DOM tests use `jsdom`, which is added as a dev depende
 - **`query.test.ts`** has table-driven tests for:
   - every operator
   - precedence (`not` before `and` before `or`) and parentheses
-  - case-insensitive keywords and field names
+  - keywords that are case-insensitive in both modes
+  - field names and string values with the case toggle off and on, keys that differ only in case,
+    and numbers, dates and booleans not changing with the toggle
   - barewords next to keywords
   - array membership, and `is` on arrays
   - missing fields with `is not` and `not in`
@@ -280,7 +307,8 @@ All tests use Vitest. The DOM tests use `jsdom`, which is added as a dev depende
   - restoring the tree, including closing only the folders the script opened
   - re-applying the filter after the observer sees a redraw
   - the case where the page has no Explorer
-- **`bookmarks.test.ts`** covers saving, replacing on a duplicate name, deleting, loading, and the
+- **`bookmarks.test.ts`** covers saving, replacing on a duplicate name, deleting, loading (which also
+  restores the case setting), old bookmarks that have no `caseSensitive`, and the
   case where localStorage throws.
 
 ## Risks

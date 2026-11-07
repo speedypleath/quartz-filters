@@ -19,8 +19,19 @@ export interface FrontmatterIndexOptions {
 const defaultOptions: FrontmatterIndexOptions = { excludeFields: [] };
 const BUILT_IN = new Set(["title", "path"]);
 
+/** A whole-value Obsidian link: `[[target#heading|alias]]`. */
+const WIKILINK = /^\[\[([^[\]|#]*)(?:#[^[\]|]*)?(?:\|([^[\]]*))?\]\]$/;
+
+/** The text Obsidian shows for a link value (its alias, else its target), so filters match it. */
+function unwrapLink(value: string): string {
+  const link = WIKILINK.exec(value.trim());
+  if (!link) return value;
+  return (link[2] || link[1] || value).trim();
+}
+
 function normalizeScalar(value: unknown): Scalar | undefined {
-  if (typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "string") return unwrapLink(value);
+  if (typeof value === "boolean") return value;
   if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? undefined : value.toISOString();
   return undefined;

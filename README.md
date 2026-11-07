@@ -12,18 +12,19 @@ rebuilt, and nothing leaves the reader's browser.
 
 ## Install
 
-The panel filters the Explorer, so install both:
+The panel filters the Explorer, so install both from npm:
 
 ```bash
-npx quartz plugin add github:quartz-community/explorer
-npx quartz plugin add github:speedypleath/quartz-filters
+npm install @quartz-community/explorer @speedypleath/quartz-filters
 ```
+
+Then add them to `quartz.config.yaml`. Quote the names, because YAML doesn't allow a bare `@`:
 
 ```yaml
 plugins:
-  - source: github:quartz-community/explorer
+  - source: "@quartz-community/explorer"
     enabled: true
-  - source: github:speedypleath/quartz-filters
+  - source: "@speedypleath/quartz-filters"
     enabled: true
     options:
       excludeFields: [email, private-notes]
@@ -32,9 +33,11 @@ plugins:
       priority: 40
 ```
 
-`npx quartz plugin add` writes the `layout` block for you. If you edit the entry by hand, keep it:
-without `layout`, Quartz still builds the index but doesn't place the panel. Priority 40 puts the
-panel above the Explorer (50).
+Keep the `layout` block: without it, Quartz still builds the index but doesn't place the panel.
+Priority 40 puts the panel above the Explorer (50).
+
+To install from GitHub instead, run `npx quartz plugin add github:speedypleath/quartz-filters` and
+use `source: github:speedypleath/quartz-filters`.
 
 > [!warning]
 > Every frontmatter field of every published note is written to a public file,

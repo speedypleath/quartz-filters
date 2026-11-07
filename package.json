@@ -8,7 +8,7 @@
   "homepage": "https://speedypleath.github.io/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/speedypleath/quartz-filters"
+    "url": "git+https://github.com/speedypleath/quartz-filters.git"
   },
   "keywords": [
     "quartz",

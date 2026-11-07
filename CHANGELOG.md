@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+### Patch Changes
+
+- 41594e5: Running a saved filter now grows the filter box to fit the whole query.
+
 ## 0.3.0
 
 ### Minor Changes

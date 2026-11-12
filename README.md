@@ -36,6 +36,12 @@ plugins:
 Keep the `layout` block: without it, Quartz still builds the index but doesn't place the panel.
 Priority 40 puts the panel above the Explorer (50).
 
+On screens 800px wide or narrower, Quartz turns the left sidebar into a header row, so the panel moves
+into the Explorer's drawer, above the tree. To make room for it, the plugin overrides one Explorer
+style there: the drawer is sized to the sidebar instead of `100vw`. Unpatched, the drawer starts
+inside the page gutter and runs 1rem past the right edge of the screen. The override only applies
+to a sidebar that contains the panel.
+
 To install from GitHub instead, run `npx quartz plugin add github:speedypleath/quartz-filters` and
 use `source: github:speedypleath/quartz-filters`.
 

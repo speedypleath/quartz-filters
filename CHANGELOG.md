@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+### Minor Changes
+
+- 1b2a922: On mobile, the note filter now sits at the top of the Explorer drawer instead of being squeezed into the header row.
+
 ## 0.3.1
 
 ### Patch Changes

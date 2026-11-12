@@ -6,6 +6,7 @@ import { INDEX_FILE } from "../../index-format";
 import { createBookmarkStore } from "./note-filter/bookmarks";
 import { createExplorerSync } from "./note-filter/explorer-sync";
 import { createIndexLoader, type IndexLoader } from "./note-filter/index-loader";
+import { dockInExplorer, MOBILE_QUERY } from "./note-filter/mobile-dock";
 import { mountNoteFilter } from "./note-filter/panel";
 
 // Module state survives SPA navigation, so the index is fetched once per page load.
@@ -23,6 +24,8 @@ function loaderFor(url: string): IndexLoader {
 document.addEventListener("nav", () => {
   for (const root of document.querySelectorAll<HTMLElement>(".note-filter")) {
     const strings = JSON.parse(root.dataset.strings ?? "{}") as NoteFilterStrings;
+    const undock = dockInExplorer(root, window.matchMedia(MOBILE_QUERY));
+    if (typeof window.addCleanup === "function") window.addCleanup(undock);
     mountNoteFilter(root, {
       loader: loaderFor(resolveBasePath(root.dataset.indexPath ?? INDEX_FILE)),
       bookmarks: createBookmarkStore(() => window.localStorage),

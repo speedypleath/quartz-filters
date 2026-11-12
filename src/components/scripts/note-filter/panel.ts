@@ -479,11 +479,17 @@ export function mountNoteFilter(root: HTMLElement, deps: PanelDeps): () => void 
   setCase(restored ? restored.caseSensitive : root.dataset.caseSensitive === "true");
   render();
 
+  // Re-fits when the input is shown (a closed mobile drawer can measure 0) or changes width.
+  const resizeObserver =
+    typeof ResizeObserver === "function" ? new ResizeObserver(() => fitInput()) : null;
+  resizeObserver?.observe(el.input);
+
   const cleanup = () => {
     mounted = false;
     clearTimeout(timer);
     removers.forEach((remove) => remove());
     sync.disconnect();
+    resizeObserver?.disconnect();
   };
   if (typeof window.addCleanup === "function") window.addCleanup(cleanup);
   return cleanup;

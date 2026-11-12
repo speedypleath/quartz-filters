@@ -383,6 +383,19 @@
   }
 }
 
+// Mobile (Quartz's breakpoint, matched by MOBILE_QUERY in mobile-dock.ts): the left sidebar is a
+// single header row, so the script moves the filter into the Explorer's drawer. Until it does,
+// keep it out of the header row so it never flashes there squeezed.
+@media (max-width: 800px) {
+  .sidebar:has(.explorer) .note-filter:not(.qf-docked) {
+    display: none;
+  }
+
+  .explorer .explorer-content > .note-filter {
+    margin: 0 1rem 1rem;
+  }
+}
+
 // Explorer integration (classes and attributes set by explorer-sync.ts)
 .explorer {
   .qf-hidden {

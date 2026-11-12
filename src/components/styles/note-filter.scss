@@ -392,7 +392,15 @@
   }
 
   .explorer .explorer-content > .note-filter {
-    margin: 0 1rem 1rem;
+    margin: 0 0 1rem;
+  }
+
+  // Patches the Explorer: its drawer is 100vw wide but starts at the sidebar's left edge, inside
+  // the page gutter, so it overflows the screen and pushes the filter's right side off it. Sizing
+  // it to the sidebar keeps it on screen; the gutters show the same background. See README.
+  .sidebar:has(.note-filter) .explorer .explorer-content {
+    width: 100%;
+    max-width: 100%;
   }
 }
 
